@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Blind Face Select v0.3</title><style>
+:root{--bg:#070b12;--panel:#111925;--line:#293548;--text:#f5f7fb;--muted:#9ca9ba;--gold:#d7aa63;--blue:#68a7ff}
+*{box-sizing:border-box}body{margin:0;background:#05070b;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}
+main{max-width:900px;min-height:100vh;margin:auto;padding:26px 18px 70px;background:radial-gradient(circle at 85% 5%,#18243a 0,#0b111b 34%,#070b12 70%)}
+.brand{font-size:12px;letter-spacing:.22em;color:var(--gold);font-weight:800}.hero{padding:38px 2px 18px}h1{font-size:clamp(32px,7vw,56px);margin:8px 0}h2{margin:5px 0 12px}.sub,.small{color:var(--muted);line-height:1.65}.small{font-size:13px}
+.panel{background:linear-gradient(180deg,#151e2b,#101722);border:1px solid var(--line);border-radius:22px;padding:20px;margin:16px 0}
+.btn{width:100%;border:0;border-radius:16px;padding:16px;font-weight:800;font-size:16px;margin-top:12px;background:var(--gold);color:#111;cursor:pointer}
+.btn.alt{background:#1b2636;color:var(--text);border:1px solid var(--line)}.row{display:flex;gap:10px;flex-wrap:wrap}.chip{flex:1;min-width:120px;padding:14px;border-radius:14px;border:1px solid var(--line);background:#141d2a;color:var(--text);font-weight:700}
+.chip.on{outline:2px solid var(--blue);background:#172944}.faces{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:18px 0}
+.face{aspect-ratio:3/4;border-radius:18px;border:1px solid var(--line);background:linear-gradient(145deg,#28364a,#111722);display:flex;align-items:center;justify-content:center;font-size:42px;cursor:pointer;position:relative;overflow:hidden}
+.face:before{content:"";width:55%;height:55%;border-radius:50%;background:#d7b59b;position:absolute;top:18%;box-shadow:0 -28px 0 8px #252a34}.face:after{content:"";width:7px;height:7px;border-radius:50%;background:#222;position:absolute;top:42%;left:38%;box-shadow:38px 0 #222}
+.face.on{outline:3px solid var(--blue);box-shadow:0 0 0 5px #68a7ff22}.face span{position:absolute;bottom:8px;font-size:11px;color:#c7d1df}
+.progress{height:7px;background:#182130;border-radius:99px;overflow:hidden;margin:12px 0}.progress i{display:block;height:100%;background:var(--gold);width:20%}
+.hidden{display:none}.rank{font-size:56px;color:var(--gold);font-weight:900;text-align:center}.center{text-align:center}
+@media(max-width:650px){.faces{grid-template-columns:repeat(3,1fr)}}
+</style></head><body><main>
+<section id="home"><div class="hero"><div class="brand">BLIND FACE SELECT / v0.3</div><h1>顔だけで、選ぶ。</h1><p class="sub">名前・所属・年齢を伏せたまま選択。これはSafari動作確認用チュートリアルです。</p></div><div class="panel"><b>今回確認すること</b><p class="sub">設定 → 予選 → 本選 → 最終 → REVEALまで、ボタン操作だけで一周できるか確認します。</p><button class="btn" onclick="show('setup')">チュートリアルをはじめる →</button></div></section>
+<section id="setup" class="hidden"><div class="brand">PLAYER SETUP</div><h2>プレイヤー設定</h2><div class="panel"><label>ニックネーム（任意）</label><input id="nick" placeholder="例：SATORU" style="width:100%;padding:14px;margin:9px 0 16px;border-radius:12px;border:1px solid var(--line);background:#0c121c;color:white"><p class="small">年代</p><div class="row" id="ages"><button class="chip">20代</button><button class="chip">30代</button><button class="chip">40代</button><button class="chip">50代</button></div><p class="small">候補</p><div class="row" id="sexes"><button class="chip">男性</button><button class="chip">女性</button></div><button class="btn" onclick="show('intro')">設定して次へ →</button></div></section>
+<section id="intro" class="hidden"><div class="brand">HOW TO PLAY</div><h2>直感で選ぶだけ。</h2><div class="panel"><p class="sub">予選は5人から最大2人。本選は4人から最大2人。最終は3人から1人。迷った候補だけ後で再登場する想定です。</p><button class="btn" onclick="stage('pre',5,2)">予選を体験する →</button></div></section>
+<section id="game" class="hidden"><div class="brand" id="stageName"></div><h2 id="instruction"></h2><div class="progress"><i id="bar"></i></div><p class="small" id="count"></p><div class="faces" id="faces"></div><button class="btn" id="next" onclick="nextStage()">選択して次へ →</button></section>
+<section id="reveal" class="hidden"><div class="brand">REVEAL</div><div class="panel center"><div class="rank">1st</div><div class="face on" style="max-width:220px;margin:20px auto"><span>BLIND #03</span></div><h2>？？？</h2><p class="sub">本番ではここで初めて名前・所属などを公開します。</p><button class="btn" onclick="reveal()">正体を公開する</button><div id="who" class="hidden"><h2 style="margin-top:22px">チュートリアル候補 #03</h2><p class="sub">実在人物版では、あらかじめ登録した本人情報を表示します。</p></div><button class="btn alt" onclick="show('done')">結果画面へ →</button></div></section>
+<section id="done" class="hidden"><div class="brand">COMPLETE</div><h2>Safari動作確認 完了</h2><div class="panel"><p class="sub">ここまで進めれば、ChatGPT内プレビュー問題は回避できています。次は約140人向けの選考ロジック、結果保存、期限付き共有リンクへ拡張できます。</p><button class="btn alt" onclick="location.reload()">最初から</button></div></section>
+</main><script>
+let phase=0,maxSel=2,selected=new Set();
+function show(id){document.querySelectorAll('main>section').forEach(x=>x.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');scrollTo(0,0)}
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{[...b.parentElement.children].forEach(x=>x.classList.remove('on'));b.classList.add('on')});
+function stage(name,n,max){show('game');phase=name==='pre'?0:name==='main'?1:2;maxSel=max;selected.clear();stageName.textContent=['PRELIMINARY','MAIN ROUND','FINAL'][phase];instruction.textContent=['気になる顔を最大2人','残したい顔を最大2人','一番好きな顔を1人'][phase];count.textContent=['予選 1 / 28（体験版）','本選 1 / 12（体験版）','最終比較（体験版）'][phase];bar.style.width=['20%','55%','88%'][phase];faces.innerHTML='';for(let i=1;i<=n;i++){let d=document.createElement('div');d.className='face';d.innerHTML='<span>BLIND #'+String(i).padStart(2,'0')+'</span>';d.onclick=()=>pick(d,i);faces.appendChild(d)}}
+function pick(el,i){if(selected.has(i)){selected.delete(i);el.classList.remove('on')}else if(selected.size<maxSel){selected.add(i);el.classList.add('on')}}
+function nextStage(){if(phase===0)stage('main',4,2);else if(phase===1)stage('final',3,1);else show('reveal')}
+function reveal(){who.classList.remove('hidden')}
+</script></body></html>
