@@ -32,7 +32,7 @@ for(let i=0;i<5;i++){
  const slot=document.createElement('div');slot.className='slot';const label=document.createElement('label');label.textContent=number(i);label.htmlFor='file'+i;
  const preview=document.createElement('img');preview.alt='写真未選択';preview.style.visibility='hidden';
  const input=document.createElement('input');input.type='file';input.accept='image/*';input.id='file'+i;input.setAttribute('aria-label',number(i)+' の写真');
- input.addEventListener('change',()=>{const file=input.files?.[0];if(!file)return;if(!file.type.startsWith('image/')){input.value='';return}if(urls[i])URL.revokeObjectURL(urls[i]);urls[i]=URL.createObjectURL(file);preview.src=urls[i];preview.style.visibility='visible';ready()});
+ input.addEventListener('change',()=>{const file=input.files?.[0];if(!file)return;if(!file.type.startsWith('image/')){input.value='';return}if(urls[i])URL.revokeObjectURL(urls[i]);urls[i]=URL.createObjectURL(file);preview.src=urls[i];preview.alt=number(i)+' の写真';preview.style.visibility='visible';ready()});
  const controls=document.createElement('div');controls.className='controls';for(const [text,dx,dy] of [['左',-10,0],['右',10,0],['上',0,-10],['下',0,10]]){const button=document.createElement('button');button.type='button';button.textContent=text;button.setAttribute('aria-label',number(i)+' の切り抜きを'+text+'へ');button.onclick=()=>{positions[i].x=Math.max(0,Math.min(100,positions[i].x+dx));positions[i].y=Math.max(0,Math.min(100,positions[i].y+dy));preview.style.objectPosition=`${positions[i].x}% ${positions[i].y}%`};controls.append(button)}
  slot.append(label,preview,input,controls);$('slots').append(slot)
 }
