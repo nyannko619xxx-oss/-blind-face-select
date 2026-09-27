@@ -191,3 +191,21 @@ Candidate identity did not explain the failures in these synthetic seeds: no sin
 3. A future **retrospective** trigger could reconsider the omitted fourth face only if its three selected peers later rank highly by player choices. In this synthetic evaluation, all 31 lost true TOP9 were beaten by three true TOP9 peers, while 292 of the 3,469 outside-TOP9 omissions also had three true TOP9 peers. The actual trigger using later player Ranking, its question cost, and behavior with inconsistent preference have **not** been simulated; these figures are diagnostic only.
 
 The local cause is a crowded 4→3 comparison of already twice-selected candidates. No currently observed binary selection count separates the boundary face from other omitted faces. The smallest credible targeted change needs either an explicit player signal or evidence from later player comparisons; its screen and fatigue cost must be tested before adoption.
+
+## Retrospective Trigger diagnostic — 2026-09-28
+
+**Experimental Simulation only. Phase 2 NOT PASS; public app and production selection engine unchanged.** `node verify-retrospective-trigger.mjs` replays B with 140 synthetic candidates, Finalist Pool 21, and the identical 500 seeds (0–499). The script asserts that its B baseline exactly matches the saved B21 mean screens 102.324, true TOP9 recovery 8.696, and exact-nine 366/500. D21 is read from the saved paired result and **not rerun**.
+
+The B final Ranking is frozen before trigger evaluation. For each omitted fourth face at the seven 4→3 screens, a trigger sees only the final player-comparison position of the *three selected peers*. Triggered fourth faces challenge the current ninth place by one player pairwise decision; on a win, binary insertion uses further player pairwise decisions and evicts the then-ninth face. No true rank, synthetic score, analytical cutoff gap, or identity enters the trigger or rescue decision. Synthetic scores drive the simulated player's answers and are used afterward to grade outcomes. One pairwise decision is one added screen; no round-robin is used.
+
+| Policy / trigger | Triggered fourth faces | True TOP9 among triggers | False alarms | Accepted outside TOP9 | Extra screens / player pairwise decisions, total (mean/run) | Mean total screens (p95) | Mean true TOP9 | Exact 9/9 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| B21 reference | — | — | — | — | 0 | 102.324 (113) | 8.696 | 366/500 |
+| D21 reference, optional prior tags | 2,393 tags | 31 protected | 2,362 tags outside TOP9 | — | +5.010 screens (plus 4.786 taps/run) | 107.334 (118) | 8.758 | 388/500 |
+| All three selected peers final TOP9 | 350 | 31 | 319 | 3 | 462 (0.924) | 103.248 (114) | 8.758 | 388/500 |
+| At least two peers final TOP9 | 1,406 | 31 | 1,375 | 3 | 1,518 (3.036) | 105.360 (116) | 8.758 | 388/500 |
+| All three peers final TOP6 | 111 | 26 | 85 | 2 | 205 (0.410) | 102.734 (114) | 8.748 | 383/500 |
+
+A false alarm is a triggered candidate whose synthetic true rank is outside nine; an **accepted outside-TOP9** face actually wins its boundary challenge and enters the result (three instances for either TOP9 trigger, two for TOP6). These are distinct counts. All-three-TOP9 triggered in 304/500 sessions; at-least-two triggered in all 500; TOP6 in 109. The all-three-TOP9 trigger caught all 31 B extra-screen true TOP9 losses for 462 comparisons, versus D's 2,393 optional tags and 2,505 additional Ranking screens across 500 runs. The remaining 121 B losses were in Preliminary/Main and cannot be recovered by these seven retrospective triggers.
+
+No variant displaced a **previously included true TOP9** face (zero across all three conditions); under the fixed transitive preference model, a worse fourth face cannot beat a stronger current ninth. Some accepted outsiders can displace another outsider because true TOP9 faces have already been lost in earlier Screening. The apparent equality of all-three-TOP9 and D recovery is specific to these same 500 stable-preference simulations, not a human quality result. The TOP9 condition still fires 319 extra pairwise checks for outside-TOP9 faces, and post-Ranking comparison flow, hesitation, nontransitive choices, photo availability, and iPad Safari behavior are unverified. This diagnostic does not select or deploy a new policy.
