@@ -1,7 +1,7 @@
 /* Phase 2 prototype: IDs and player choices only. No face scoring or identity lookup. */
 export function createSelection(ids, {lateSize=3,seed}={}) {
-  if (!Array.isArray(ids) || ids.length<9 || ids.length>150 || new Set(ids).size!==ids.length)
-    throw new Error('9〜150件の重複しない候補IDが必要です');
+  if (!Array.isArray(ids) || ids.length<9 || ids.length>300 || new Set(ids).size!==ids.length)
+    throw new Error('9〜300件の重複しない候補IDが必要です');
   if (lateSize!==3 && lateSize!==4) throw new Error('終盤の表示人数は3または4です');
   const order=[...ids];
   let rng=Number(seed)>>>0;const random=seed===undefined?Math.random:()=>((rng=(Math.imul(1664525,rng)+1013904223)>>>0)/4294967296);
