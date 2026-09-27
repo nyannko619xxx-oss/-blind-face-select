@@ -171,12 +171,12 @@ The results support keeping a sufficiently broad pool through the screening/rank
 
 | B lost true TOP9 stage | Rank 1–7 | Rank 8 | Rank 9 | Total |
 |---|---:|---:|---:|---:|
-| Preliminary 5→2 | 10 | 7 | 6 | 23 |
-| Main 4→2 | 36 | 29 | 33 | 98 |
+| Preliminary 5→2 | 4 | 7 | 12 | 23 |
+| Main 4→2 | 42 | 29 | 27 | 98 |
 | Extra screen 4→3 | 11 | 11 | 9 | 31 |
 | Total | 57 | 47 | 48 | 152 |
 
-The stage row for rank groups is computed from the full per-rank result and should be checked against the machine-readable JSON; the extra-screen row is exactly ranks 5:2, 6:3, 7:6, 8:11, 9:9. Every lost true TOP9 face was omitted while **all selected faces on that screen were themselves stronger true TOP9 faces**. No true TOP9 loss was caused by a selected outsider under this stable preference model. In the extra-screen 31 cases, the selected trio's reconstructed least-preferred member had true rank 3–7 and was 1–6 preference-score positions ahead of the omitted face. The UI receives only the chosen set; it does not know this internal order or numerical gap.
+The stage-by-rank row is generated and checked in the machine-readable JSON; the extra-screen row is exactly ranks 5:2, 6:3, 7:6, 8:11, 9:9. Every lost true TOP9 face was omitted while **all selected faces on that screen were themselves stronger true TOP9 faces**. No true TOP9 loss was caused by a selected outsider under this stable preference model. In the extra-screen 31 cases, the selected trio's reconstructed least-preferred member had true rank 3–7 and was 1–6 preference-score positions ahead of the omitted face. The UI receives only the chosen set; it does not know this internal order or numerical gap.
 
 Every one of the 31 extra-screen losses had been chosen in Preliminary and Main (two prior wins, zero prior losses). The three selected peers also each had two prior wins. Previously defeated faces had the same observable selection pattern across these entrants: three zero-win Preliminary omissions and two one-win Main omissions. Thus a simple prior win/loss count or selected-peer win count cannot distinguish the 31 from the 3,469 other extra-screen omissions. One weaker existing signal, whether a Preliminary co-winner also survived Main, was true in 17/31 losses versus 1,543/3,469 other omissions; it is insufficient by itself to identify a narrow rescue queue.
 
