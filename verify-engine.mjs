@@ -25,6 +25,7 @@ for(const count of counts)for(const lateSize of lateSizes)for(const style of sty
 }
 
 // Every pairwise rank choice follows a stable simulated preference order.
+let topNineHits=0,exactTopNine=0,minTopNine=9,preferenceScreens=0;
 for(let seed=0;seed<500;seed++){
   const ids=Array.from({length:140},(_,i)=>`c${i}`);
   const state=createSelection(ids,{seed});
@@ -36,6 +37,10 @@ for(let seed=0;seed<500;seed++){
     submitChoice(state,chosen);
   }
   assert.deepEqual(state.ranking,[...state.ranking].sort((a,b)=>value(b)-value(a)));
+  const expected=[...ids].sort((a,b)=>value(b)-value(a)).slice(0,9);
+  const hits=state.ranking.filter(id=>expected.includes(id)).length;
+  topNineHits+=hits;exactTopNine+=Number(hits===9);minTopNine=Math.min(minTopNine,hits);
+  preferenceScreens+=state.history.length;
 }
 
-console.log(JSON.stringify({sessions:total,preferenceRuns:500,maxScreens,maxCandidateAppearances:maxSeen}));
+console.log(JSON.stringify({sessions:total,preferenceRuns:500,maxScreens,maxCandidateAppearances:maxSeen,meanTrueTopNineHits:topNineHits/500,minTrueTopNineHits:minTopNine,exactTopNine,meanPreferenceScreens:preferenceScreens/500}));
