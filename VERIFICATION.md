@@ -13,7 +13,7 @@ The repository and GitHub Pages are the implementation baseline. `app.html` is t
 
 ## Automated engine checks
 
-`selection-engine.js` has no beauty model or identity inference. It uses player selections to determine survivors and pairwise player decisions for the order. Support counts and hesitation only choose additional opponents. The 4,200-session run covered candidate counts 9, 20, 40, 105, 135, 140, and 150, two late sizes, three choice patterns, and 100 seeds each. Each run terminated with nine unique finalists and no candidate appeared more than 20 times. A separate set of 500 consistent-preference simulations produced the expected pairwise order. A 140-candidate instance used 58–73 screens depending on choice pattern and late size. These checks do not prove that a real person's TOP9 is stable or that 73 screens feels acceptable.
+`selection-engine.js` has no beauty model or identity inference. It uses player selections to determine survivors and pairwise player decisions for the order. Support counts and hesitation only choose additional opponents. Reproduce the checks with `node verify-engine.mjs`. The 4,200-session run covered candidate counts 9, 20, 40, 105, 135, 140, and 150, two late sizes, three choice patterns, and 100 seeds each. Each run terminated with nine unique finalists; maximum observed candidate appearance was 10 in this suite. A separate set of 500 consistent-preference simulations produced the expected pairwise order. A 140-candidate instance used 58–73 screens depending on choice pattern and late size. The maximum across all sizes and patterns was 79 screens. These checks do not prove that a real person's TOP9 is stable or that 73 screens feels acceptable.
 
 ## Image architecture and scope decision
 
