@@ -49,7 +49,8 @@ function summary(xs){return {total:xs.length,byStage:by(xs,x=>x.stage),byRank:by
   priorWins:by(xs,x=>x.prior.wins),priorLosses:by(xs,x=>x.prior.losses),
   cutoffGap:{min:Math.min(...xs.map(x=>x.cutoffGap)),max:Math.max(...xs.map(x=>x.cutoffGap)),mean:xs.reduce((n,x)=>n+x.cutoffGap,0)/xs.length},
   repeatedIds:[...Map.groupBy(xs,x=>x.id)].sort((a,b)=>b[1].length-a[1].length).slice(0,5).map(([id,v])=>[id,v.length])};}
-const out={count,seeds:500,allTop9Loss:summary(lost),screenTop9Loss:summary(screen),screenOutsideTop9Omitted:summary(topOutside),rescuedByD:summary(protectionRescues),
+const stageRank=Object.fromEntries(['preliminary','main','screen'].map(stage=>[stage,{rank1to7:lost.filter(x=>x.stage===stage&&x.rank<=7).length,rank8:lost.filter(x=>x.stage===stage&&x.rank===8).length,rank9:lost.filter(x=>x.stage===stage&&x.rank===9).length}]));
+const out={count,seeds:500,stageRank,allTop9Loss:summary(lost),screenTop9Loss:summary(screen),screenOutsideTop9Omitted:summary(topOutside),rescuedByD:summary(protectionRescues),
   localSignals:{screenTop9:{buddyMainWin:by(screen,x=>x.preliminaryBuddySurvivedMain),selectedPriorWins:by(screen,x=>x.selectedPriorWins.join(',')),priorDefeatedWins:by(screen,x=>x.priorDefeatedWins.join(',')),gapHistogram:gapHistogram(screen)},
     outsideTop9:{buddyMainWin:by(topOutside,x=>x.preliminaryBuddySurvivedMain),selectedPriorWins:by(topOutside,x=>x.selectedPriorWins.join(',')),priorDefeatedWins:by(topOutside,x=>x.priorDefeatedWins.join(',')),gapHistogram:gapHistogram(topOutside)}},
   protectionTotals:{rescued:protectionRescues.length,totalTags:allTagged.length,taggedNonTop9:allTagged.filter(x=>x.rank>9).length},
