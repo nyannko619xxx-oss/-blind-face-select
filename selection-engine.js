@@ -1,8 +1,9 @@
 /* Phase 2 prototype: IDs and player choices only. No face scoring or identity lookup. */
-export function createSelection(ids) {
+export function createSelection(ids, {lateSize=3}={}) {
   if (!Array.isArray(ids) || ids.length<9 || ids.length>150 || new Set(ids).size!==ids.length)
     throw new Error('9〜150件の重複しない候補IDが必要です');
-  return {phase:ids.length<40?(ids.length===9?'rank':'late'):'preliminary',pool:ids.length<40?[...ids]:[],remaining:ids.length===9?[...ids]:ids.length<40?[]:[...ids],advancing:[],rejected:[],history:[],finalists:ids.length===9?[...ids]:[],ranking:[],comparison:null,pending:null};
+  if (lateSize!==3 && lateSize!==4) throw new Error('終盤の表示人数は3または4です');
+  return {lateSize,phase:ids.length<40?(ids.length===9?'rank':'late'):'preliminary',pool:ids.length<40?[...ids]:[],remaining:ids.length===9?[...ids]:ids.length<40?[]:[...ids],advancing:[],rejected:[],history:[],finalists:ids.length===9?[...ids]:[],ranking:[],comparison:null,pending:null};
 }
 
 export function nextQuestion(s) {
@@ -24,7 +25,7 @@ export function nextQuestion(s) {
   }
   if (s.phase==='late') {
     if (s.pool.length===9) {startRanking(s);return nextQuestion(s)}
-    const ids=s.pool.slice(0,s.pool.length===10?2:3);
+    const ids=s.pool.slice(0,Math.min(s.lateSize,s.pool.length-8));
     return s.pending={phase:'late',ids,min:1,max:1};
   }
   if (s.phase==='recovery') {
