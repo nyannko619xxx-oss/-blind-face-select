@@ -125,3 +125,42 @@ A fifth condition was added after the table above to separate protection from th
 Against this matched Late+Pairwise control, C's protected runner-ups increase recovery by **2.338 people at 140** for **19.806 additional screens**, and **2.936 at 263** for **32.722 additional screens**. A versus C changes both protection and the terminal ranking/boundary path, so its difference alone was not a causal estimate of protection. A's original two boundary rescue matches account for A's higher recovery than E (0.174/0.350 people), at about 1.856/1.766 extra screens.
 
 The full 1–9 rank-by-stage counts for E are in `finalist-results.jsonl`. This control strengthens the stage-loss diagnosis but does not make C a deployment choice: the simulated near-tie signal is idealized, extra tagging adds interaction effort, and human preference stability is unverified. The app and production engine remain unchanged; Phase 2 stays **NOT PASS**.
+
+## B/D finalist boundary follow-up — 2026-09-27
+
+**Phase 2 remains NOT PASS; the public app and production selection engine were not changed.** The stored `finalist-results.jsonl` provided the existing target-24 aggregate reference, but lacked per-seed candidate/stage records. `verify-finalist-boundary.mjs` therefore reruns only B/D with the same 500 seeds and simulated player; target-24 rows reproduce the stored B/D mean screen and recovery figures exactly. `finalist-boundary-results.jsonl` stores all summaries and per-rank stage counts. No A/C/E rerun was needed.
+
+A threshold is checked after each complete 4→3 screening pass. Consequently, requested thresholds may result in the same actual pool size (e.g. 140: target 21/24 both yield 21; 263: target 24/28/30 yield 24). Extra protection tags are the simulated player's optional close-call on an omitted fourth face, capped at six; they enlarge D's ranking pool. The simulation uses a deterministic stable preference order. Scores control the simulated player's choices/tags and evaluation, never algorithmic ranking. Ranking compares each challenger first against the current ninth face, then binary-inserts on a player win, without all-pairs comparisons.
+
+### Where B/D misses occur at target 24
+
+| Pool | Policy | Preliminary | Main | Extra screening | In Finalist Pool but missed in Ranking | Total misses |
+|---|---|---:|---:|---:|---:|---:|
+| 140 | B | 0.046 | 0.196 | 0.062 | 0 | 0.304 |
+| 140 | D | 0.046 | 0.196 | 0 | 0 | 0.242 |
+| 263 | B | 0.010 | 0.060 | 0.084 | 0 | 0.154 |
+| 263 | D | 0.010 | 0.060 | 0.072 | 0 | 0.142 |
+
+Values are mean people per run; 500 runs per row. Ranking loss zero is expected for a stable transitive simulated preference with exact pairwise insertion; it must not be extrapolated to fluctuating human choices. At 140, B and D miss the same candidate in 121 of 4,500 true-TOP9 opportunities; D restores 31 B misses and creates zero new misses. At 263 the corresponding counts are 71 common misses and six restored, zero new. The “same candidate” means the same synthetic ID in the paired seed, not a real person. No single synthetic ID repeatedly dominates: the highest miss frequency is three of 500 seeds. Misses are concentrated near the boundary: at 140, B loses true ranks 8 and 9 in 47 and 48 of 500 runs (D: 36 and 39); ranks 1–3 are never missed. At 263, B loses ranks 8/9 in 20/25 (D: 16/24). The full rank 1–9 stage matrix is in the JSONL.
+
+### Pool position and screen tradeoff
+
+| Pool | Policy | Actual screened pool → ranking pool | Mean screens | P95 | Mean true TOP9 | Exact / 500 | Mean extra 4→3 screens | Mean pairwise/boundary screens | Mean tag taps |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|
+| 140 | B compact | 16 → 16 | 94.136 | 101 | 8.492 | 289 | 13 | 39.136 | 0 |
+| 140 | D compact | 16 → 21.992 | 100.680 | 108 | 8.628 | 334 | 13 | 45.680 | 5.992 |
+| 140 | B reference | 21 → 21 | 102.324 | 113 | 8.696 | 366 | 7 | 53.324 | 0 |
+| 140 | D reference | 21 → 25.786 | 107.334 | 118 | 8.758 | 388 | 7 | 58.334 | 4.786 |
+| 140 | B no extra screen | 28 → 28 | 112.898 | 126 | 8.758 | 388 | 0 | 70.898 | 0 |
+| 263 | B compact | 18 → 18 | 159.478 | 168 | 8.688 | 367 | 39 | 40.478 | 0 |
+| 263 | D compact | 18 → 24 | 165.522 | 174 | 8.700 | 369 | 39 | 46.522 | 6 |
+| 263 | B reference | 24 → 24 | 168.182 | 179 | 8.846 | 432 | 33 | 55.182 | 0 |
+| 263 | D reference | 24 → 30 | 174.220 | 185 | 8.858 | 436 | 33 | 61.220 | 6 |
+| 263 | B larger | 31 → 31 | 176.760 | 190 | 8.888 | 449 | 25 | 71.760 | 0 |
+| 263 | B largest tested | 41 → 41 | 185.386 | 201 | 8.914 | 461 | 14 | 91.386 | 0 |
+
+The 140 “no extra screen” option preserves all 28 Main survivors and uses only player-driven pairwise boundary ranking. Its 8.758 mean is the ceiling imposed by Preliminary/Main under this stable model; beyond that point a larger Finalist Pool cannot restore earlier omissions. At 263, the largest tested screened pool was 41 because the Main pool was 54 and a complete 4→3 pass yielded 41; the threshold itself does not directly set an exact size.
+
+**Marginal Protection cost:** at the reference boundary, D over B gains 0.062 true TOP9 per 140-person session (31 extra recovered candidates over 500 runs) for 5.010 more screens and 4.786 optional tags per session. At 263 it gains 0.012 (six extra recoveries) for 6.038 more screens and six tags. Under this simulation, D's 140 result matches B's 28-person no-screen pool while using 5.564 fewer screens but requiring 4.786 tags. At 263, D's marginal gain is small relative to its interaction burden. The tags are additional decisions on existing screens, so screen count alone understates player fatigue.
+
+The results support keeping a sufficiently broad pool through the screening/ranking boundary. They do not choose a deployed policy: stable scores overstate exact ranking consistency, image-based fatigue and human hesitation have not been measured, and ALL SELECT still takes substantially more than the desired ordinary session. No round-robin comparison was used. The next useful test is a small human pilot or a nontransitive/noisy-choice simulation before changing the public app.
