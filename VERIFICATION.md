@@ -75,3 +75,40 @@ All loss/recovery values are mean people per run; “lost at Main” counts true
 In this stable-preference model, limiting Preliminary to two loses only 0.046 true TOP9 people per 140-person run (0.010 at 263). Taking three removes that particular loss but shifts more faces into Main/Late and lowers end-to-end recovery. B's small rescue queue restores 0.014/0.002 true TOP9 per run yet can displace stronger finalists later, so overall recovery drops. D improves on A, but its declared boundary queue accounts for most of the gain: compared with the prior declared-only result (140: 6.934 at 84.752 screens; 263: 6.320 at 128.036), D is slower and less accurate. The largest loss is downstream, especially Late; simply increasing Preliminary throughput cannot solve it with the existing narrowing rule.
 
 The 140-person ideal of 50–70 screens is exceeded even by A in this all-top-two preference simulation. Results depend on stable cardinal score spacing, always taking the maximum number of favorites, and a perfect hesitation oracle for near ties. Real players may choose fewer than the maximum, hesitate for other reasons, or have nontransitive preferences. Do not enable B/C/D/E in the public app on these results. The next quality investigation should focus on Late/near-boundary elimination, using paired seeds and player-only choices, before selecting an implementation.
+
+## Screening / Finalist Pool checkpoint — 2026-09-27
+
+**Phase 2 remains NOT PASS.** The earlier hypothesis that Preliminary's two-person limit is the principal loss source is set aside for this fixed-preference model. This study changes no deployed app or production selection engine. Run `node verify-finalist-pool.mjs` to reproduce 500 paired seeds per pool/policy; `finalist-results.jsonl` contains the full results, including stage classification for each true rank 1–9. `node verify-engine.mjs` still passes 5,400 existing structural sessions.
+
+All four policies use the same seeded shuffle, Preliminary 5→2 and Main 4→2. Synthetic preference scores determine **only simulated player choices and evaluation**. Candidate scheduling and ranking consume the simulated choices, never the underlying scores. A is the actual current engine without declared hesitation; it includes its two existing boundary comparisons. Thus A's 72.588-screen result corresponds to the original no-signal baseline, while the earlier 72.738 included declared flags that affected boundary ordering.
+
+- **A Baseline:** rotating Late groups of three (four for 263), one winner, then existing boundary and direct rank.
+- **B Finalist Pool:** after Main, repeat 4→3 screening only until 18–24 remain (21 at 140, 24 at 263). Pairwise insert the first nine into an ordered list; each later challenger first meets the current ninth face and is inserted by binary comparison only if the player chooses the challenger. This focuses work at the TOP9 boundary; there is no full round robin.
+- **C Protected Late:** retain the existing Late rotation, but let the player explicitly tag the runner-up when close to the winner. Tagged faces (mean 7.584 at 140; 13.466 at 263) join the nine survivors for the same player-driven pairwise TOP9 ranking. Every Late entrant was chosen in Preliminary and Main. The simulated optional close signal is score gap ≤10% of pool range; that score is unavailable to the engine.
+- **D Finalist + Protected:** B's 4→3 screen, plus at most six omitted faces explicitly tagged by the simulated player as close to the third retained face. Their mean finalist pools are 25.786/30, above B's 18–24 target due to protection. The subsequent pairwise boundary/ranking is the same as B.
+
+| Pool | Policy | Mean screens | P95 | True TOP9 / 9 | Exact 9/9 / 500 | True ranks 8–12 / 5 | Max appearances | Late loss | Added screen loss | Finalist TOP9 reached |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 140 | A | 72.588 | 74 | 6.320 | 0 | 1.880 | 13 | 2.612 | 0 | 6.320 |
+| 140 | B | 102.324 | 113 | 8.696 | 366 | 2.112 | 20 | 0 | 0.062 | 8.696 |
+| 140 | C | 90.538 | 99 | 8.484 | 284 | 2.220 | 18 | 0.274 | 0 | 8.484 |
+| 140 | D | 107.334 | 118 | 8.758 | 388 | 2.092 | 25 | 0 | 0 | 8.758 |
+| 263 | A | 115.914 | 117 | 5.712 | 0 | 1.610 | 13 | 3.568 | 0 | 5.712 |
+| 263 | B | 168.182 | 179 | 8.846 | 432 | 2.062 | 25 | 0 | 0.084 | 8.846 |
+| 263 | C | 146.870 | 156 | 8.298 | 223 | 2.360 | 22 | 0.632 | 0 | 8.298 |
+| 263 | D | 174.220 | 185 | 8.858 | 436 | 2.060 | 31 | 0 | 0.072 | 8.858 |
+
+Each loss/reach value is mean people per run. A Late loss is measured **before** the existing boundary recheck, which recovers some; this is why A Late loss plus earlier losses differs from final misses. B/D have no Late elimination, but the extra screening loses some. C Late loss counts faces not retained or tagged. The result pool contains 9 in A; 21/24 in B; mean 16.584/22.466 in C; mean 25.786/30 in D. Pairwise TOP9 ranking recovered 100% of true TOP9 *that reached its pool* in this deterministic transitive model. This ratio is a consequence of a stable simulated order and exact binary insertion, **not** a forecast for people with inconsistent or evolving preferences.
+
+| Pool | True rank | A: stage loss / final recovery | B: stage loss / final recovery | C: stage loss / final recovery | D: stage loss / final recovery |
+|---|---:|---|---|---|---|
+| 140 | 5 | Preliminary 1, Main 5, Late 151 / 343 | Preliminary 1, Main 5, screen 2 / 492 | Preliminary 1, Main 5, Late 14 / 480 | Preliminary 1, Main 5 / 494 |
+| 140 | 9 | Preliminary 12, Main 27, Late 249 / 212 | Preliminary 12, Main 27, screen 9 / 452 | Preliminary 12, Main 27, Late 34 / 427 | Preliminary 12, Main 27 / 461 |
+| 263 | 5 | Preliminary 1, Late 210 / 289 | Preliminary 1 / 499 | Preliminary 1, Late 38 / 461 | Preliminary 1 / 499 |
+| 263 | 9 | Preliminary 1, Main 5, Late 308 / 186 | Preliminary 1, Main 5, screen 19 / 475 | Preliminary 1, Main 5, Late 71 / 423 | Preliminary 1, Main 5, screen 18 / 476 |
+
+Counts in the rank table are out of 500. Rank 1 survived all policies in all runs. The JSONL file provides the same breakdown for ranks 1–9. Even when A's existing boundary recheck restores a late loser, the Late-loss event is counted; its rank stage classification reports final recovery if restored.
+
+The tradeoff is material: at 140, B gains 2.376 true TOP9 people over A for 29.736 more screens; C gains 2.164 for 17.950 more screens. At 263, B gains 3.134 for 52.268 more screens; C gains 2.586 for 30.956 more screens. D's marginal improvement over B costs 5.010/6.038 more screens and raises maximum reappearances. None meets the preferred 50–70 screens at 140 or avoids very long ALL sessions. Stable-score exact 9/9 is a diagnostic, not a product pass target; real preferences may drift, and selecting a runner-up or tagging a close fourth adds cognitive effort even without a new screen. The measured screen count omits time per screen and fatigue.
+
+**Conclusion for this checkpoint:** Stage loss is dominated by Late's forced one-of-three/four cut, particularly around rank 5 and 9. The two-stage architecture and protection warrant further budget/fatigue work, but no policy is selected or deployed. Structural checks assert nine unique, preference-consistent finalists in the paired runs; human preference quality and Safari remain unverified.
