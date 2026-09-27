@@ -73,7 +73,9 @@ for(const count of counts){
         for(const h of s.history){history.push({shown:h.shown,stage:h.phase});for(const id of h.shown)show[id]=(show[id]||0)+1}
         finalists=s.finalists;
       }
-      assert.equal(candidates.length,9);assert.deepEqual(candidates,[...candidates].sort((a,b)=>score(b)-score(a)));
+      assert.equal(candidates.length,9);assert.equal(new Set(candidates).size,9);
+      assert(candidates.every(id=>ids.includes(id)));
+      assert.deepEqual(candidates,[...candidates].sort((a,b)=>score(b)-score(a)));
       const final=new Set(candidates),pre=new Set(preliminary),ma=new Set(main),fi=new Set(finalists),late=new Set(lateSurvivors||[]);
       const stageByRank=truth.slice(0,9).map(id=>!pre.has(id)?'preliminary':!ma.has(id)?'main':final.has(id)?'recovered':mode.startsWith('A')&&!late.has(id)?'late':!fi.has(id)?mode.startsWith('B')||mode.startsWith('D')?'screen':'late':'finalist');
       rows[mode].push({screens:history.length,hits:candidates.filter(id=>isTop.has(id)).length,near:candidates.filter(id=>near.has(id)).length,max:Math.max(...Object.values(show)),
