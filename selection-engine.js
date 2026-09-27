@@ -3,7 +3,9 @@ export function createSelection(ids, {lateSize=3}={}) {
   if (!Array.isArray(ids) || ids.length<9 || ids.length>150 || new Set(ids).size!==ids.length)
     throw new Error('9〜150件の重複しない候補IDが必要です');
   if (lateSize!==3 && lateSize!==4) throw new Error('終盤の表示人数は3または4です');
-  return {lateSize,phase:ids.length<40?(ids.length===9?'rank':'late'):'preliminary',pool:ids.length<40?[...ids]:[],remaining:ids.length===9?[...ids]:ids.length<40?[]:[...ids],advancing:[],rejected:[],history:[],finalists:ids.length===9?[...ids]:[],ranking:[],comparison:null,pending:null};
+  const order=[...ids];
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]]}
+  return {lateSize,phase:order.length<40?(order.length===9?'rank':'late'):'preliminary',pool:order.length<40?[...order]:[],remaining:order.length===9?[...order]:order.length<40?[]:[...order],advancing:[],rejected:[],history:[],finalists:order.length===9?[...order]:[],ranking:[],comparison:null,pending:null};
 }
 
 export function nextQuestion(s) {
