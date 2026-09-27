@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createSelection,nextQuestion,submitChoice,selectionAudit} from './selection-engine.js';
 
-const counts=[9,20,40,105,135,140,150], lateSizes=[3,4], styles=['one','two','mixed'];
+const counts=[9,20,40,105,135,140,150,158,263], lateSizes=[3,4], styles=['one','two','mixed'];
 let total=0,maxSeen=0,maxScreens=0;
 for(const count of counts)for(const lateSize of lateSizes)for(const style of styles)for(let seed=0;seed<100;seed++){
   const ids=Array.from({length:count},(_,i)=>`c${i}`);
