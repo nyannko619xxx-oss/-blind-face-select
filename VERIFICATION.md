@@ -48,3 +48,30 @@ Run `node verify-quality.mjs`: 500 paired seeds per candidate count and policy; 
 The baseline rows include declaration flags for a paired comparison, though the baseline policy does not create an extra queue; the flag already affects its two existing boundary matches. Fixed second chance checks up to 32 preliminary rejects. Declared mode checks only rejected faces shown in a declared comparison, capped at 12, then uses the original two boundary matches. All additional ranking decisions remain player choices. The fixed mode tested here is a defined new queue policy, not the earlier unpublished two-survivor experiment (reported around 90–100 screens); those numbers should not be equated.
 
 The result separates the tradeoff: declared hesitation saves about 20 screens versus this fixed second chance, but still misses roughly two of nine true favorites at 140, and more at 263. Some high-ranked faces lost in an unmarked preliminary group cannot enter the declared queue. The simulation's deterministic close-score flag also marked ranking comparisons, inflating the logged declaration count without adding recheck candidates. Further work should test sparse/imperfect human declarations, compare preliminary cut alternatives, and improve recall before enabling an opt-in policy in the app. No Phase 2 PASS claim follows from these data.
+
+## Preliminary information-loss checkpoint — 2026-09-27
+
+**Phase 2 remains NOT PASS.** This is a separate experiment module (`selection-engine-experiment.js`); the deployed `app.js` continues to import `selection-engine.js` and retains the existing selection path. Run `node verify-preliminary.mjs`; machine-readable paired results are in `preliminary-results.jsonl`.
+
+Each row uses the same 500 seeded candidate shuffles and stable, fully ordered synthetic preferences. The simulated player takes the best two shown in five-person Preliminary (A/B/D), or best three (C/E); takes two in Main and one in Late/Rescue/Boundary, and always orders finalists by that same preference. C/E support zero through three selections in the experimental engine, but the quality run always chooses three; the zero-choice control completed one 40-candidate structural run. Hesitation is declared when the preference-score gap around the chosen/unselected cut is at most 10% of pool size. These scores and true ranks are used by the **simulation only**, never by the selection algorithm.
+
+B retains omitted faces from Preliminary but chooses at most six groups for rescue, prioritizing groups whose selected faces survived Main; D/E additionally prioritize declared groups. It interleaves omitted faces from different groups into three-face questions, selecting one to join Late. It does not recheck every Preliminary reject. D/E also use the previous declared boundary queue. This is one explicit, falsifiable rescue rule, not proof that all rescue designs fail. Each group with a top-two choice has no recorded numeric selection gap; the rescue rule cannot know how close third place was without an additional player input.
+
+| Pool | Policy | Mean screens | P95 | True TOP9 / 9 | Exact 9/9 / 500 | True ranks 8–12 / 5 | Max shown | Lost at Preliminary | Lost at Main | Rescued Preliminary TOP9 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 140 | A baseline | 72.738 | 74 | 6.306 | 0 | 1.880 | 12 | 0.046 | 0.196 | 0 |
+| 140 | B rescue | 81.786 | 84 | 5.956 | 1 | 1.748 | 13 | 0.046 | 0.196 | 0.014 |
+| 140 | C max3 | 87.120 | 89 | 5.854 | 1 | 1.672 | 13 | 0 | 0.066 | 0 |
+| 140 | D rescue + declared | 93.918 | 96 | 6.810 | 8 | 2.002 | 15 | 0.046 | 0.196 | 0.014 |
+| 140 | E max3 + rescue + declared | 105.090 | 107 | 6.580 | 4 | 1.942 | 15 | 0 | 0.066 | 0 |
+| 263 | A baseline | 116.096 | 118 | 5.716 | 0 | 1.634 | 13 | 0.010 | 0.060 | 0 |
+| 263 | B rescue | 123.920 | 126 | 5.170 | 0 | 1.442 | 13 | 0.010 | 0.060 | 0.002 |
+| 263 | C max3 | 137.968 | 139 | 5.500 | 0 | 1.508 | 13 | 0 | 0.022 | 0 |
+| 263 | D rescue + declared | 136.098 | 138 | 6.106 | 1 | 1.760 | 15 | 0.010 | 0.060 | 0.008 |
+| 263 | E max3 + rescue + declared | 155.290 | 157 | 6.086 | 0 | 1.776 | 15 | 0 | 0.022 | 0 |
+
+All loss/recovery values are mean people per run; “lost at Main” counts true TOP9 who survived Preliminary but did not survive Main. “Rescued” counts originally omitted true TOP9 who entered via the explicit Rescue phase **and finished in TOP9**. The rank 8–12 measure is how many of those five true candidates finished in the nine slots, not a five-position ordered-rank score. Max shown is the maximum over all runs, rather than a mean.
+
+In this stable-preference model, limiting Preliminary to two loses only 0.046 true TOP9 people per 140-person run (0.010 at 263). Taking three removes that particular loss but shifts more faces into Main/Late and lowers end-to-end recovery. B's small rescue queue restores 0.014/0.002 true TOP9 per run yet can displace stronger finalists later, so overall recovery drops. D improves on A, but its declared boundary queue accounts for most of the gain: compared with the prior declared-only result (140: 6.934 at 84.752 screens; 263: 6.320 at 128.036), D is slower and less accurate. The largest loss is downstream, especially Late; simply increasing Preliminary throughput cannot solve it with the existing narrowing rule.
+
+The 140-person ideal of 50–70 screens is exceeded even by A in this all-top-two preference simulation. Results depend on stable cardinal score spacing, always taking the maximum number of favorites, and a perfect hesitation oracle for near ties. Real players may choose fewer than the maximum, hesitate for other reasons, or have nontransitive preferences. Do not enable B/C/D/E in the public app on these results. The next quality investigation should focus on Late/near-boundary elimination, using paired seeds and player-only choices, before selecting an implementation.
