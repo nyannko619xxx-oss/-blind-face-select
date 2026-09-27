@@ -5,7 +5,7 @@
 <section id="game" class="panel hidden"><div class="brand" id="phase"></div><h2 id="heading"></h2><p id="progress"></p><div class="faces" id="faces"></div><p id="chosen" role="status"></p><div class="actions"><button class="btn secondary" id="undo" disabled>ひとつ戻る</button><button class="btn" id="next" disabled>選択して次へ →</button><button class="btn secondary" id="reset">最初から</button></div></section>
 <section id="done" class="panel hidden"><h2>TOP9 確定</h2><p id="summary"></p><div class="results" id="results"></div><div class="actions"><button class="btn secondary" id="restart">もう一度</button></div></section>
 <script type="module">
-import {createSelection,nextQuestion,submitChoice} from './selection-engine.js';
+import {createSelection,nextQuestion,submitChoice} from './selection-engine.js?v=phase2-2';
 const $=id=>document.getElementById(id);let state,question,picks=new Set(),snapshots=[];
 const names={preliminary:'PRELIMINARY',main:'MAIN ROUND',late:'LATE ROUND',recovery:'BORDERLINE RECHECK',rank:'DIRECT COMPARISON'};
 function show(id){for(const s of document.querySelectorAll('main>section'))s.classList.toggle('hidden',s.id!==id);scrollTo(0,0)}
