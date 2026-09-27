@@ -3,7 +3,7 @@ import {createSelection,nextQuestion,submitChoice,selectionAudit} from './select
 
 // Experimental simulation only. Preference values are available solely to the
 // simulated player's choices and the evaluator, never to candidate scheduling.
-const counts=[140,263],modes=['A baseline','B finalist pool','C protected late','D finalist + protected'];
+const counts=[140,263],modes=['A baseline','B finalist pool','C protected late','D finalist + protected','E late rank control'];
 const p95=a=>[...a].sort((x,y)=>x-y)[Math.ceil(.95*a.length)-1];
 for(const count of counts){
   const rows=Object.fromEntries(modes.map(x=>[x,[]]));
@@ -81,7 +81,7 @@ for(const count of counts){
       rows[mode].push({screens:history.length,hits:candidates.filter(id=>isTop.has(id)).length,near:candidates.filter(id=>near.has(id)).length,max:Math.max(...Object.values(show)),
         preliminaryLost:truth.slice(0,9).filter(id=>!pre.has(id)).length,mainLost:truth.slice(0,9).filter(id=>pre.has(id)&&!ma.has(id)).length,
         finalistReached:truth.slice(0,9).filter(id=>fi.has(id)).length,finalistRecovered:truth.slice(0,9).filter(id=>fi.has(id)&&final.has(id)).length,
-        lateLost:mode.startsWith('A')?truth.slice(0,9).filter(id=>ma.has(id)&&!late.has(id)).length:mode.startsWith('C')?truth.slice(0,9).filter(id=>ma.has(id)&&!fi.has(id)).length:0,
+        lateLost:mode.startsWith('A')?truth.slice(0,9).filter(id=>ma.has(id)&&!late.has(id)).length:mode.startsWith('C')||mode.startsWith('E')?truth.slice(0,9).filter(id=>ma.has(id)&&!fi.has(id)).length:0,
         screenLost:mode.startsWith('B')||mode.startsWith('D')?truth.slice(0,9).filter(id=>ma.has(id)&&!fi.has(id)).length:0,
         poolSize:finalists.length,protected:protectedIds.length,stageByRank});
     }
