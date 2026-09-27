@@ -1,0 +1,24 @@
+import {validatePairs,buildSchedule,exportData} from './human-boundary-core.mjs';
+const $=id=>document.getElementById(id), KEY='blind-face-select-human-boundary-pilot-v0.1';
+let catalog=null,pairs=null,session=null,displayStart=0;
+function random(){const n=new Uint32Array(1);crypto.getRandomValues(n);return n[0]/4294967296}
+function openCatalog(){return new Promise((resolve,reject)=>{const req=indexedDB.open('blind-face-select-assets',1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('catalogs'))req.result.createObjectStore('catalogs')};req.onerror=()=>reject(req.error);req.onsuccess=()=>{const db=req.result;const tx=db.transaction('catalogs','readonly'),get=tx.objectStore('catalogs').get('active');get.onsuccess=()=>resolve(get.result);get.onerror=()=>reject(get.error);tx.oncomplete=()=>db.close()}})}
+function catalogMap(data){const entries=data?.candidate_master||data?.candidates||[];return new Map(entries.map(c=>[c.candidate_id||c.id,c.image_source_url||c.imageUrl]).filter(([id,url])=>typeof id==='string'&&typeof url==='string'&&url.startsWith('https://')))}
+function save(){localStorage.setItem(KEY,JSON.stringify(session))}
+function clear(){localStorage.removeItem(KEY);session=null}
+function status(message){$('setupStatus').textContent=message}
+function download(){const payload=JSON.stringify(exportData(session),null,2),url=URL.createObjectURL(new Blob([payload],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`boundary-pilot-${session.pilot_id}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function validSession(s){return s?.schema==='human-boundary-pilot-v0.1'&&Array.isArray(s.assigned)&&Array.isArray(s.schedule)&&Array.isArray(s.responses)&&s.responses.length<=s.schedule.length&&s.assigned.every(p=>catalog.has(p.a_id)&&catalog.has(p.b_id))}
+async function render(){
+  $('setup').hidden=true;if(session.responses.length===session.schedule.length){$('game').hidden=true;$('done').hidden=false;$('doneStatus').textContent=`${session.responses.length}件の表示を記録しました。JSONを保存してください。`;return}
+  $('game').hidden=false;$('done').hidden=true;
+  const i=session.responses.length,entry=session.schedule[i];$('progress').textContent=`比較 ${i+1} / ${session.schedule.length}`;
+  $('faces').replaceChildren();$('gameStatus').textContent='顔画像を読み込み中…';displayStart=0;
+  const sides=[['left',entry.left_id],['right',entry.right_id]],images=[];
+  for(const [side,id] of sides){const button=document.createElement('button');button.type='button';button.className='face';button.disabled=true;button.setAttribute('aria-label',side==='left'?'左の顔を選ぶ':'右の顔を選ぶ');const img=document.createElement('img');img.alt='';img.referrerPolicy='no-referrer';button.append(img);$('faces').append(button);images.push(new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('画像を表示できません。Catalogと画像URLを確認してください。'));img.src=catalog.get(id)}));button.onclick=()=>{if(!displayStart)return;button.disabled=true;const response={sequence:i+1,pair_id:entry.pair_id,condition:entry.condition,pass:entry.pass,left_id:entry.left_id,right_id:entry.right_id,choice_id:id,choice_side:side,response_ms:Math.round(performance.now()-displayStart),timestamp:new Date().toISOString()};session.responses.push(response);save();render()}}
+  try{await Promise.all(images);if(session.responses.length!==i)return;for(const b of $('faces').children)b.disabled=false;displayStart=performance.now();$('gameStatus').textContent='より好みの顔をタップ';}catch(e){$('gameStatus').textContent=e.message}
+}
+function start(){const {assigned,schedule}=buildSchedule(pairs,random);session={schema:'human-boundary-pilot-v0.1',pilot_id:crypto.randomUUID(),manifest_version:$('manifest').dataset.version||'unversioned',created_at:new Date().toISOString(),assigned,schedule,responses:[]};save();render()}
+$('manifest').onchange=async()=>{try{const data=JSON.parse(await $('manifest').files[0].text());pairs=validatePairs(data,new Set(catalog.keys()));$('manifest').dataset.version=String(data.version||'unversioned').slice(0,80);$('start').disabled=false;status(`${pairs.length} Pairを読み込みました。元のPair選定根拠を確認してから開始してください。`)}catch(e){pairs=null;$('start').disabled=true;status(e.message)}};
+$('start').onclick=start;$('partial').onclick=download;$('download').onclick=download;$('restart').onclick=()=>{if(!confirm('この端末内の完了ログを消去します。先にJSONを保存しましたか？'))return;clear();pairs=null;$('manifest').value='';$('start').disabled=true;$('done').hidden=true;$('setup').hidden=false;status('新しいPair manifestを選択してください。')};
+openCatalog().then(data=>{catalog=catalogMap(data);if(!catalog.size){status('候補Catalogが未設定です。同じブラウザのcatalog.htmlで先に設定してください。');$('manifest').disabled=true;return}status(`候補Catalog ${catalog.size}人を参照可能です。Pair manifestを選択してください。`);try{const s=JSON.parse(localStorage.getItem(KEY));if(validSession(s)){session=s;render();status('保存済みPilotを再開しました。')}}catch{}}).catch(e=>status('Catalogを読み込めません：'+e.message));
