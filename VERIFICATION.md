@@ -237,3 +237,55 @@ Across R scenarios, per-session **maximum candidate displays** average 14.17–1
 Ranking inconsistency is reported in three distinct ways in the JSON: repeated pair answers that reversed within a session (R: 3 near-flip sessions, 87/133 close-jitter sessions; none in the cycle and drift models, whose pair answers are deterministic), observed player comparison edges contrary to the final TOP9 order (zero here, as insertion rarely compares the same final pair after a reversal), and an **offline audit** of all final TOP9 pairs against the mock player's modeled pair preference (mean 0.032–4.314 discordant pairs depending on model; stable zero). The offline audit is evaluation only; it is not a proposed all-pairs player interaction. Nontransitive cycles can create discordance even with no reversed repeat answer.
 
 For drift, anchored early versus late ideal TOP9 overlap averages 8.568 (L1) or 8.184 (L2); R matches the late ideal 8.728 or 8.664 on average, respectively. This is why the anchored recovery score alone should not be read as a human satisfaction measure. No policy was adopted or deployed. Human comparative play, preference instability, and the cost of post-Ranking return remain open; no new Preliminary/Main rescue design was started.
+
+## Retrospective Trigger failure mechanism — 2026-09-28
+
+**Diagnostic replay only. Phase 2 remains NOT PASS; Retrospective is unadopted; production/public app and all prior simulation evidence remain unchanged.** `node analyze-retrospective-failures.mjs > retrospective-failure-analysis.json` replays the exact 500 seeds and nine conditions of the robustness study. Assertions match the saved B/D/R screen means, TOP9 recovery, exact-nine counts, and R trigger/false/accepted/displacement counts for every condition. The new JSON stores all 51 individual event traces and counterfactuals. No new selection policy is run.
+
+### Correct interpretation of “displaced true TOP9”
+
+The previous aggregate `evictedBaselineTrue` counted 51 removals of a latent-TOP9 face that had been in B's result, across the eight noisy conditions (4,000 scenario-runs). It is **not** a count of 51 harmful substitutions:
+
+- **34** substitutions brought in a *higher* latent-ranked TOP9 face (rank gap rescued minus evicted = −1:16, −2:5, −3:9, −4:4). Each removed a lower-ranked TOP9 face but did not reduce the number of TOP9 faces. Their B result often had a misplaced boundary due to earlier Ranking order.
+- **17** substitutions brought in a *lower* latent-ranked face (rank gap +1:6, +2:7, +3:2, +4:2; mean +2). **15** admitted rank 10–13 in place of rank 7–9, reducing anchored TOP9 recall; **2** exchanged two latent-TOP9 faces in the wrong direction without reducing the count.
+- Stable control produced zero such substitutions.
+
+| Noise condition | B TOP9 faces displaced | Lower-ranked substitution | Actual TOP9-count loss | Lower-ranked rate per 500 runs |
+|---|---:|---:|---:|---:|
+| Near-boundary flip L1 / L2 | 5 / 8 | 4 / 6 | 4 / 6 | 0.8% / 1.2% |
+| Close-choice jitter L1 / L2 | 8 / 12 | 3 / 4 | 3 / 2 | 0.6% / 0.8% |
+| Nontransitive cycle L1 / L2 | 5 / 5 | 0 / 0 | 0 / 0 | 0% / 0% |
+| Early/late drift L1 / L2 | 2 / 6 | 0 / 0 | 0 / 0 | 0% / 0% |
+
+These rates describe this bounded synthetic model, not measured human failure probabilities. The initial latent rank is the grading reference even when a modeled preference later drifts or cycles.
+
+### Stage attribution and counterfactuals
+
+For each case the trace records seed, condition, 4→3 group and chosen three, omitted fourth, trigger/peer positions, current ninth and binary answer, all insertion decisions, TOP9 before/after, evicted face, both latent ranks, and first observed path departure from the stable seed. A **same-group** noise-free 4→3 choice (A) and a noise-free Ranking of the *same noisy finalist pool* for peer membership (B) are diagnostic comparators, not inputs to the policy. **F** is an extra category for a boundary already misplaced by B's Ranking: the current ninth is not the weakest latent face in the displayed nine. C and D audit the actual boundary and insertion decisions against the latent preference. Categories overlap.
+
+| Category among 17 lower-ranked substitutions | Count | Interpretation |
+|---|---:|---|
+| A: 4→3 choice changed in the same group | 1 | Also B, C and F |
+| B: trigger peer membership differs with noise-free Ranking of same pool | 1 | Also A, C and F |
+| C: fourth-vs-current-ninth answer reversed | **17** | Present in every lower-ranked substitution |
+| D: at least one insertion answer reversed | 16 | Always overlaps C; no D-only case |
+| F: prior B boundary placement inconsistent with latent order | 7 | Overlaps C |
+| E: two or more flags | 17 | C+D:10, C+D+F:6, A+B+C+F:1 |
+
+Local first anomalous stage among these cases is A:1, F:6, C:10; these labels describe temporal precursors, **not independent causal proof**. The full-path first departure from the stable seed was Preliminary selection/set/order in 10, Main order in 2, extra screen order in 3, and Ranking answer in 2; set/order changes can change later comparison pair order without indicating an incorrect choice. All 17 harmful paths ultimately required a reversed boundary answer in the observed run.
+
+Three **single-component analyst counterfactuals** replayed each full noisy path independently, freezing only one component to the evaluation oracle. The oracle is deliberately unavailable to the production algorithm:
+
+| Frozen component | Earlier B latent-TOP9 face retained, of 17 |
+|---|---:|
+| Trigger membership from noise-free Ranking of the same pool; keep noisy boundary/insertion | 1 |
+| Fourth-vs-current-ninth boundary answer from latent order; keep noisy trigger/insertion | **17** |
+| Insertion answers from latent order; keep noisy trigger/boundary | 15 |
+
+The counts overlap and must not be added. The insertion-only counterfactual can reject an incorrectly accepted fourth face by inserting it beyond ninth, but fails in two cases with pre-existing Ranking order issues. The boundary-only counterfactual prevents all 17 because all 17 fourth faces are weaker than the current ninth in the anchored latent order. It is an **oracle sensitivity test**, not a feasible engine instruction.
+
+Example: near-flip L1 seed 312 selected three peers in the extra screen and all three reached B's TOP9; the omitted latent rank-10 face challenged rank 9. Only the boundary answer flipped in favor of rank 10 (with a later repeated comparison flip), replacing rank 9. Noise-free trigger membership would still fire; the boundary-only counterfactual keeps rank 9. The full trace appears in `retrospective-failure-analysis.json`.
+
+**Hypothesis assessment for this model:** H1 trigger condition as main cause is not supported (1/17), H2 noisy single boundary decision is strongly supported (17/17 and 17/17 boundary-only prevention), H3 insertion as primary independent cause is not supported (no D-only harmful case), and H4 overlapping anomalies occur (17/17) but do not erase C's necessary role in these cases. This does not prove that a human player will give a stable answer when asked again. A possible **Improvement Candidate**, not implemented, is to evaluate the reliability and interaction cost of boundary evidence in a separate future decision. Do not infer that a latent-rank oracle, majority rule, or repeated question should be added.
+
+**Limitations:** deterministic hashed noise, a fixed scoring reference, same-seed diagnostics rather than human trials, and only 17 lower-ranked substitutions. The 34 higher-ranked substitutions are not failures by the latent pairwise preference but could still affect human satisfaction. The first stable-path departure is descriptive; earlier order changes do not establish causality. No Preliminary/Main rescue study, new Rule, or Production implementation follows from this analysis.
