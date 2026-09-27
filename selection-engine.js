@@ -61,3 +61,9 @@ export function submitChoice(s,chosen) {
   }
   s.pending=null;return nextQuestion(s);
 }
+
+export function selectionAudit(s) {
+  const phases={};const seenLate=new Set();
+  for(const h of s.history){phases[h.phase]=(phases[h.phase]||0)+1;if(h.phase==='late')h.shown.forEach(id=>seenLate.add(id))}
+  return {screens:s.history.length,phases,finalistsWithoutLate:s.finalists.filter(id=>!seenLate.has(id)).length};
+}
