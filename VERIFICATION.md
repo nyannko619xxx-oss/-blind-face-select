@@ -29,3 +29,22 @@ Candidate scope is now fixed by three official-list sets: STARTO 105, Junior 158
 The iPad Safari check on the actual Pages URL should cover landscape and portrait five/four/three faces (four-face late variant for ALL), photo loading, start/resume, ninth-to-first reveal, a second player, archived result, and valid/expired link on another device. This is a consolidated human check after Work-side tests.
 
 No rights inference follows from an official URL, a successful hotlink, or personal intent. See [ASSET_ARCHITECTURE.md](ASSET_ARCHITECTURE.md).
+
+## Selection quality checkpoint — 2026-09-27
+
+Phase 2 remains **NOT PASS**. The existing optional 「この比較は迷った」 control already records a per-question uncertainty flag. The new engine accepts opt-in `recheckMode: 'declared'` and `'secondChance'`, but the deployed app still uses default `baseline`. No image or Safari work was part of this checkpoint.
+
+Run `node verify-quality.mjs`: 500 paired seeds per candidate count and policy; stable deterministic preference, choose the top one or two visible, declare hesitation when the score gap across the choice cut is at most 10% of candidate count. The truth is the global top nine by the same synthetic score. Boundary recovery measures how many of true ranks 8 and 9 appear in the final nine (maximum 2). P95 is nearest-rank. These are simulated signals, **not empirical player behavior**. A separate 50-seed test confirms that with no declaration, declared mode has exactly the same screens and ranking as baseline. `node verify-engine.mjs` still passes 5,400 structural runs and retains the prior no-signal mean 6.32/9 for 140.
+
+| Pool | Policy | Mean screens | P95 screens | Mean true TOP9 / 9 | Exact / 500 | True ranks 8–9 / 2 | Max appearances |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 140 | Baseline | 72.738 | 74 | 6.306 | 0 | 0.934 | 12 |
+| 140 | Fixed second chance | 104.718 | 106 | 7.198 | 22 | 1.026 | 17 |
+| 140 | Declared hesitation | 84.752 | 86 | 6.934 | 4 | 1.044 | 15 |
+| 263 | Baseline | 116.096 | 118 | 5.716 | 0 | 0.796 | 13 |
+| 263 | Fixed second chance | 148.060 | 150 | 6.800 | 6 | 0.992 | 17 |
+| 263 | Declared hesitation | 128.036 | 130 | 6.320 | 2 | 0.876 | 16 |
+
+The baseline rows include declaration flags for a paired comparison, though the baseline policy does not create an extra queue; the flag already affects its two existing boundary matches. Fixed second chance checks up to 32 preliminary rejects. Declared mode checks only rejected faces shown in a declared comparison, capped at 12, then uses the original two boundary matches. All additional ranking decisions remain player choices. The fixed mode tested here is a defined new queue policy, not the earlier unpublished two-survivor experiment (reported around 90–100 screens); those numbers should not be equated.
+
+The result separates the tradeoff: declared hesitation saves about 20 screens versus this fixed second chance, but still misses roughly two of nine true favorites at 140, and more at 263. Some high-ranked faces lost in an unmarked preliminary group cannot enter the declared queue. The simulation's deterministic close-score flag also marked ranking comparisons, inflating the logged declaration count without adding recheck candidates. Further work should test sparse/imperfect human declarations, compare preliminary cut alternatives, and improve recall before enabling an opt-in policy in the app. No Phase 2 PASS claim follows from these data.
