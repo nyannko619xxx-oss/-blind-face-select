@@ -1,0 +1,10 @@
+{"count":140,"scenario":"A baseline","runs":500,"meanScreens":72.738,"p95Screens":74,"trueTop9":6.306,"exact9":0,"rank8to12":1.88,"maxAppearances":12,"preliminaryLost":0.046,"mainLost":0.196,"rescueRecovered":0}
+{"count":140,"scenario":"B rescue","runs":500,"meanScreens":81.786,"p95Screens":84,"trueTop9":5.956,"exact9":1,"rank8to12":1.748,"maxAppearances":13,"preliminaryLost":0.046,"mainLost":0.196,"rescueRecovered":0.014}
+{"count":140,"scenario":"C max3","runs":500,"meanScreens":87.12,"p95Screens":89,"trueTop9":5.854,"exact9":1,"rank8to12":1.672,"maxAppearances":13,"preliminaryLost":0,"mainLost":0.066,"rescueRecovered":0}
+{"count":140,"scenario":"D rescue+declared","runs":500,"meanScreens":93.918,"p95Screens":96,"trueTop9":6.81,"exact9":8,"rank8to12":2.002,"maxAppearances":15,"preliminaryLost":0.046,"mainLost":0.196,"rescueRecovered":0.014}
+{"count":140,"scenario":"E max3+rescue+declared","runs":500,"meanScreens":105.09,"p95Screens":107,"trueTop9":6.58,"exact9":4,"rank8to12":1.942,"maxAppearances":15,"preliminaryLost":0,"mainLost":0.066,"rescueRecovered":0}
+{"count":263,"scenario":"A baseline","runs":500,"meanScreens":116.096,"p95Screens":118,"trueTop9":5.716,"exact9":0,"rank8to12":1.634,"maxAppearances":13,"preliminaryLost":0.01,"mainLost":0.06,"rescueRecovered":0}
+{"count":263,"scenario":"B rescue","runs":500,"meanScreens":123.92,"p95Screens":126,"trueTop9":5.17,"exact9":0,"rank8to12":1.442,"maxAppearances":13,"preliminaryLost":0.01,"mainLost":0.06,"rescueRecovered":0.002}
+{"count":263,"scenario":"C max3","runs":500,"meanScreens":137.968,"p95Screens":139,"trueTop9":5.5,"exact9":0,"rank8to12":1.508,"maxAppearances":13,"preliminaryLost":0,"mainLost":0.022,"rescueRecovered":0}
+{"count":263,"scenario":"D rescue+declared","runs":500,"meanScreens":136.098,"p95Screens":138,"trueTop9":6.106,"exact9":1,"rank8to12":1.76,"maxAppearances":15,"preliminaryLost":0.01,"mainLost":0.06,"rescueRecovered":0.008}
+{"count":263,"scenario":"E max3+rescue+declared","runs":500,"meanScreens":155.29,"p95Screens":157,"trueTop9":6.086,"exact9":0,"rank8to12":1.776,"maxAppearances":15,"preliminaryLost":0,"mainLost":0.022,"rescueRecovered":0}
