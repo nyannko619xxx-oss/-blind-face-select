@@ -164,3 +164,30 @@ The 140 “no extra screen” option preserves all 28 Main survivors and uses on
 **Marginal Protection cost:** at the reference boundary, D over B gains 0.062 true TOP9 per 140-person session (31 extra recovered candidates over 500 runs) for 5.010 more screens and 4.786 optional tags per session. At 263 it gains 0.012 (six extra recoveries) for 6.038 more screens and six tags. Under this simulation, D's 140 result matches B's 28-person no-screen pool while using 5.564 fewer screens but requiring 4.786 tags. At 263, D's marginal gain is small relative to its interaction burden. The tags are additional decisions on existing screens, so screen count alone understates player fatigue.
 
 The results support keeping a sufficiently broad pool through the screening/ranking boundary. They do not choose a deployed policy: stable scores overstate exact ranking consistency, image-based fatigue and human hesitation have not been measured, and ALL SELECT still takes substantially more than the desired ordinary session. No round-robin comparison was used. The next useful test is a small human pilot or a nontransitive/noisy-choice simulation before changing the public app.
+
+## Local screening elimination analysis — 2026-09-27
+
+**Phase 2 remains NOT PASS. No public app or production engine change.** The saved B/D summaries have no losing-group histories. `analyze-screening-events.mjs` minimally replays the existing 140-person B, target-21 screening path on the same 500 seeds, stopping before Ranking. `screening-event-results.json` stores rank distributions, group winners, reconstructed cutoffs, pre-decision history, and D tag accounting. This is a diagnostic replay of existing policy, not a new selection policy or full simulation sweep.
+
+| B lost true TOP9 stage | Rank 1–7 | Rank 8 | Rank 9 | Total |
+|---|---:|---:|---:|---:|
+| Preliminary 5→2 | 10 | 7 | 6 | 23 |
+| Main 4→2 | 36 | 29 | 33 | 98 |
+| Extra screen 4→3 | 11 | 11 | 9 | 31 |
+| Total | 57 | 47 | 48 | 152 |
+
+The stage row for rank groups is computed from the full per-rank result and should be checked against the machine-readable JSON; the extra-screen row is exactly ranks 5:2, 6:3, 7:6, 8:11, 9:9. Every lost true TOP9 face was omitted while **all selected faces on that screen were themselves stronger true TOP9 faces**. No true TOP9 loss was caused by a selected outsider under this stable preference model. In the extra-screen 31 cases, the selected trio's reconstructed least-preferred member had true rank 3–7 and was 1–6 preference-score positions ahead of the omitted face. The UI receives only the chosen set; it does not know this internal order or numerical gap.
+
+Every one of the 31 extra-screen losses had been chosen in Preliminary and Main (two prior wins, zero prior losses). The three selected peers also each had two prior wins. Previously defeated faces had the same observable selection pattern across these entrants: three zero-win Preliminary omissions and two one-win Main omissions. Thus a simple prior win/loss count or selected-peer win count cannot distinguish the 31 from the 3,469 other extra-screen omissions. One weaker existing signal, whether a Preliminary co-winner also survived Main, was true in 17/31 losses versus 1,543/3,469 other omissions; it is insufficient by itself to identify a narrow rescue queue.
+
+D protected **all 31** lost true TOP9 faces in this paired stable model. It required 2,393 optional close tags across 500 sessions (4.786/session); **2,362** tags were on faces outside the true TOP9. The close-call score gap was 1–6 in all 31 lost TOP9 cases, but 1,318 outside-TOP9 omissions also had a gap ≤6. Closeness alone has low precision here and the cardinal gap is unavailable to the algorithm without player declaration. D therefore trades many extra decisions and Ranking comparisons for 31 saved events.
+
+Candidate identity did not explain the failures in these synthetic seeds: no single synthetic ID was lost more than three times in 500 runs; the vulnerable *rank band* and crowded group arrangement repeat. This does not establish anything about actual faces.
+
+**Minimal change candidates for later tests, neither adopted:**
+
+1. Preserve all 28 Main survivors and skip this seven-screen 4→3 cut. Earlier paired results show recovery 8.758/9 at 112.898 screens versus B's 8.696/9 at 102.324, recovering the 31 extra-screen losses for 10.574 additional screens on average, with no extra tag taps.
+2. Let the player optionally reserve the fourth face for a limited later comparison, as in experimental D. It recovered those 31 at 107.334 screens (5.010 above B), but added 4.786 tags/session and 2,362 tags on outside-TOP9 faces. This is an interaction burden, not a chosen implementation.
+3. A future **retrospective** trigger could reconsider the omitted fourth face only if its three selected peers later rank highly by player choices. In this synthetic evaluation, all 31 lost true TOP9 were beaten by three true TOP9 peers, while 292 of the 3,469 outside-TOP9 omissions also had three true TOP9 peers. The actual trigger using later player Ranking, its question cost, and behavior with inconsistent preference have **not** been simulated; these figures are diagnostic only.
+
+The local cause is a crowded 4→3 comparison of already twice-selected candidates. No currently observed binary selection count separates the boundary face from other omitted faces. The smallest credible targeted change needs either an explicit player signal or evidence from later player comparisons; its screen and fatigue cost must be tested before adoption.
