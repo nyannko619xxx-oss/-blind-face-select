@@ -1,16 +1,30 @@
 /* Phase 2 prototype: IDs and player choices only. No face scoring or identity lookup. */
-export function createSelection(ids, {lateSize=3,seed}={}) {
+export function createSelection(ids, {lateSize=3,seed,recheckMode='baseline'}={}) {
   if (!Array.isArray(ids) || ids.length<9 || ids.length>300 || new Set(ids).size!==ids.length)
     throw new Error('9〜300件の重複しない候補IDが必要です');
   if (lateSize!==3 && lateSize!==4) throw new Error('終盤の表示人数は3または4です');
+  if (!['baseline','secondChance','declared'].includes(recheckMode)) throw new Error('再比較方式が無効です');
   const order=[...ids];
   let rng=Number(seed)>>>0;const random=seed===undefined?Math.random:()=>((rng=(Math.imul(1664525,rng)+1013904223)>>>0)/4294967296);
   for(let i=order.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[order[i],order[j]]=[order[j],order[i]]}
-  return {version:2,lateSize,phase:order.length<40?(order.length===9?'rank':'late'):'preliminary',pool:order.length<40?[...order]:[],remaining:order.length===9?[...order]:order.length<40?[]:[...order],advancing:[],rejected:[],history:[],finalists:order.length===9?[...order]:[],ranking:[],comparison:null,pending:null,boundaryCount:0,boundaryUsed:[],originalCount:ids.length};
+  return {version:3,recheckMode,lateSize,phase:order.length<40?(order.length===9?'rank':'late'):'preliminary',pool:order.length<40?[...order]:[],remaining:order.length===9?[...order]:order.length<40?[]:[...order],advancing:[],rejected:[],history:[],finalists:order.length===9?[...order]:[],ranking:[],comparison:null,pending:null,boundaryCount:0,boundaryUsed:[],recheckQueue:[],originalCount:ids.length};
 }
 
 function support(s,id){let wins=0,losses=0,uncertain=0;for(const h of s.history)if(h.shown.includes(id)){if(h.chosen.includes(id))wins++;else losses++;if(h.uncertain)uncertain++}return {wins,losses,uncertain}}
-function enterBoundary(s){if(s.originalCount<40){startRanking(s);return}s.phase='boundary';s.boundaryCount=0;s.boundaryUsed=[]}
+function enterBoundary(s){if(s.originalCount<40){startRanking(s);return}s.phase='boundary';s.boundaryCount=0;s.boundaryUsed=[];
+  const rejected=[...new Set(s.rejected)].filter(id=>!s.pool.includes(id));
+  if(s.recheckMode==='declared'){
+    // A declaration attaches to the comparison, including the candidate omitted at an early cut.
+    // No declaration means no extra screens. Cap the queue to avoid repeatedly showing one face.
+    s.recheckQueue=rejected.filter(id=>s.history.some(h=>h.uncertain&&h.shown.includes(id)))
+      .sort((a,b)=>support(s,b).uncertain-support(s,a).uncertain||support(s,b).wins-support(s,a).wins)
+      .slice(0,Math.min(12,Math.ceil(s.originalCount/12)));
+  }else if(s.recheckMode==='secondChance'){
+    s.recheckQueue=rejected.filter(id=>s.history.some(h=>h.phase==='preliminary'&&h.shown.includes(id)))
+      .sort((a,b)=>support(s,b).wins-support(s,a).wins||support(s,a).losses-support(s,b).losses)
+      .slice(0,Math.min(32,Math.ceil(s.originalCount/4)));
+  }else s.recheckQueue=[];
+}
 function boundaryPair(s){
   const used=new Set(s.boundaryUsed),inPool=new Set(s.pool);
   const challengers=[...new Set(s.rejected)].filter(id=>!inPool.has(id)&&!used.has(id)&&support(s,id).wins>0);
@@ -48,6 +62,14 @@ export function nextQuestion(s) {
     return s.pending={phase:'recovery',ids:s.remaining.slice(0,3),min:1,max:1};
   }
   if (s.phase==='boundary') {
+    while(s.recheckQueue?.length&&s.pool.includes(s.recheckQueue[0]))s.recheckQueue.shift();
+    if(s.recheckQueue?.length){
+      const challenger=s.recheckQueue[0], used=new Set(s.boundaryUsed);
+      const incumbent=[...s.pool].filter(id=>!used.has(id)).sort((a,b)=>{
+        const A=support(s,a),B=support(s,b);return (A.wins-A.losses)-(B.wins-B.losses)||B.uncertain-A.uncertain;
+      })[0]||s.pool[0];
+      return s.pending={phase:'boundary',ids:[incumbent,challenger],min:1,max:1,recheck:true};
+    }
     const ids=s.boundaryCount<2?boundaryPair(s):null;
     if(!ids){startRanking(s);return nextQuestion(s)}
     return s.pending={phase:'boundary',ids,min:1,max:1};
@@ -72,7 +94,7 @@ export function submitChoice(s,chosen,{uncertain=false}={}) {
   } else if (q.phase==='late') {
     s.pool.splice(0,q.ids.length);s.pool.push(chosen[0]);s.rejected.push(...q.ids.filter(id=>id!==chosen[0]));
   } else if (q.phase==='boundary') {
-    s.boundaryCount++;s.boundaryUsed.push(...q.ids);
+    if(q.recheck)s.recheckQueue.shift();else{s.boundaryCount++;s.boundaryUsed.push(...q.ids)}
     if(chosen[0]===q.ids[1]){s.pool.splice(s.pool.indexOf(q.ids[0]),1,q.ids[1]);s.rejected.push(q.ids[0])}
   } else {
     s.remaining.splice(0,q.ids.length);
