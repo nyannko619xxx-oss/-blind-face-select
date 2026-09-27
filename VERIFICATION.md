@@ -112,3 +112,16 @@ Counts in the rank table are out of 500. Rank 1 survived all policies in all run
 The tradeoff is material: at 140, B gains 2.376 true TOP9 people over A for 29.736 more screens; C gains 2.164 for 17.950 more screens. At 263, B gains 3.134 for 52.268 more screens; C gains 2.586 for 30.956 more screens. D's marginal improvement over B costs 5.010/6.038 more screens and raises maximum reappearances. None meets the preferred 50–70 screens at 140 or avoids very long ALL sessions. Stable-score exact 9/9 is a diagnostic, not a product pass target; real preferences may drift, and selecting a runner-up or tagging a close fourth adds cognitive effort even without a new screen. The measured screen count omits time per screen and fatigue.
 
 **Conclusion for this checkpoint:** Stage loss is dominated by Late's forced one-of-three/four cut, particularly around rank 5 and 9. The two-stage architecture and protection warrant further budget/fatigue work, but no policy is selected or deployed. Structural checks assert nine unique, preference-consistent finalists in the paired runs; human preference quality and Safari remain unverified.
+
+### Follow-up control: Late winners with Pairwise ranking only
+
+A fifth condition was added after the table above to separate protection from the act of replacing the final ranking procedure. **E Late rank control** keeps Preliminary/Main and the forced Late winners, does **not** protect any runner-up, omits A's two boundary rescue matches, and uses C's pairwise insertion solely to order the nine Late winners. It does not add any face back, so Pairwise ranking alone cannot improve TOP9 membership.
+
+| Pool | E mean screens | E P95 | E true TOP9 | E Exact / 500 | E ranks 8–12 / 5 | E max appearances | E Late loss |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 140 | 70.732 | 72 | 6.146 | 0 | 1.834 | 11 | 2.612 |
+| 263 | 114.148 | 116 | 5.362 | 0 | 1.542 | 11 | 3.568 |
+
+Against this matched Late+Pairwise control, C's protected runner-ups increase recovery by **2.338 people at 140** for **19.806 additional screens**, and **2.936 at 263** for **32.722 additional screens**. A versus C changes both protection and the terminal ranking/boundary path, so its difference alone was not a causal estimate of protection. A's original two boundary rescue matches account for A's higher recovery than E (0.174/0.350 people), at about 1.856/1.766 extra screens.
+
+The full 1–9 rank-by-stage counts for E are in `finalist-results.jsonl`. This control strengthens the stage-loss diagnosis but does not make C a deployment choice: the simulated near-tie signal is idealized, extra tagging adds interaction effort, and human preference stability is unverified. The app and production engine remain unchanged; Phase 2 stays **NOT PASS**.
