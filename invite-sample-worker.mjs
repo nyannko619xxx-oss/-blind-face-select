@@ -24,7 +24,14 @@ export async function handleInviteRequest(request,env,{now=Date.now()}={}){
       // A fixed UNIQUE marker is the linearization point: only one human Owner claim.
       await env.INVITE_DB.prepare('INSERT INTO anonymous_sessions (session_id, token_hash, claimed_invite_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?)').bind(id,await hash(token),marker,now,now+SESSION_MS).run();
       return response({sessionToken:token,expiresAt:now+SESSION_MS},201,h);
-    }catch(error){if(/UNIQUE|constraint/i.test(String(error)))return response({error:'owner_already_claimed'},410,h);throw error}
+    }catch(error){
+      if(/UNIQUE|constraint/i.test(String(error)))return response({error:'owner_already_claimed'},410,h);
+      // D1 may surface a simultaneous insert as a transient error. Confirm that
+      // another request committed the one-time marker before treating it as used.
+      if(await env.INVITE_DB.prepare('SELECT 1 FROM anonymous_sessions WHERE claimed_invite_hash = ?').bind(marker).first())
+        return response({error:'owner_already_claimed'},410,h);
+      throw error
+    }
   }
   if(request.method==='POST'&&url.pathname==='/v1/sample/admin/bootstrap'){
     // Admin bootstrap is outside normal Player UI; never write the secret to public config.
