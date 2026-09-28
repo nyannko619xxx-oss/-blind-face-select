@@ -17,5 +17,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify exact-row reset behavior
         run: node verify-invite-reset.mjs
-      - name: Inspect on initial push; reset only on explicit rerun or dispatch
+      - name: Inspect claim state on initial push; reset only on explicit rerun
         run: node invite-test-reset.mjs
