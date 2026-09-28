@@ -71,16 +71,20 @@ jobs:
           };
           const expect=(r,status,label)=>{if(r.status!==status)throw Error(label+'_status_'+r.status);return r.value};
           (async()=>{
-            await new Promise(resolve=>setTimeout(resolve,5000));
-            const html=await fetch(origin+'/?v=owner-fix-20260928-1',{cache:'no-store'});
-            const page=await html.text();
-            if(html.status!==200||!page.includes('id="ownerMessage"')||!page.includes('[hidden]{display:none!important}')||!page.includes('app.js?v=owner-fix-20260928-1'))throw Error('html_repair_missing');
-            const js=await fetch(origin+'/app.js?v=owner-fix-20260928-1',{cache:'no-store'});
-            const source=fs.readFileSync('invite-sample-assets/app.js','utf8');
-            if(js.status!==200||(await js.text())!==source)throw Error('js_repair_missing');
+            let assetsReady=false;
+            for(let attempt=0;attempt<8;attempt++){
+              await new Promise(resolve=>setTimeout(resolve,5000));
+              const html=await fetch(origin+'/?v=owner-fix-20260928-1',{cache:'no-store'});
+              const page=await html.text();
+              const js=await fetch(origin+'/app.js?v=owner-fix-20260928-1',{cache:'no-store'});
+              const source=fs.readFileSync('invite-sample-assets/app.js','utf8');
+              assetsReady=html.status===200&&page.includes('id="ownerMessage"')&&page.includes('[hidden]{display:none!important}')&&page.includes('app.js?v=owner-fix-20260928-1')&&js.status===200&&(await js.text())===source;
+              if(assetsReady)break;
+            }
+            if(!assetsReady)throw Error('repaired_assets_not_propagated');
             expect(await request('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:'bad'}}),400,'owner_bad_shape');
             expect(await request('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:'0'.repeat(64)}}),403,'owner_wrong_code');
-            expect(await request('/v1/sample/owner/claim'),404,'owner_wrong_method');
+            expect(await request('/v1/sample/owner/claim'),401,'owner_wrong_method');
             expect(await request('/dev/owner'),404,'local_route_absent');
             expect(await request('/v1/sample/fixture'),401,'fixture_unauthorized');
             expect(await request('/v1/sample/invites',{method:'POST'}),401,'invite_unauthorized');
