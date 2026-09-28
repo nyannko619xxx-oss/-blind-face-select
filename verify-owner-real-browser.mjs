@@ -21,8 +21,7 @@ try{
     if(await page.locator('.owner-result').isVisible())break;
     const cards=page.locator('.owner-selection .game-face'),n=await cards.count();seen.add(n);
     assert.equal(await page.getByText('架空氏名0').count(),0,'blind_name_leak');
-    const progress=await page.locator('.owner-selection p').first().innerText();
-    await cards.first().click();if(progress.includes('2人まで')&&n>=2)await cards.nth(1).click();
+    await cards.first().click();
     await page.getByRole('button',{name:'次へ進む'}).click();
     if(screens===11){await page.reload();await page.locator('.owner-selection .game-face').first().waitFor();resumed=true}
   }
