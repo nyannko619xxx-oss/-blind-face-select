@@ -127,7 +127,7 @@ jobs:
           NODE
       - name: Clean-browser invite, asynchronous share and fixture TOP9 E2E
         run: node verify-invite-sample-v02-browser.mjs
-      - name: Clean-browser synthetic Owner 105 UI E2E
+      - name: Clean-browser synthetic Owner 105 UI E2E with one choice per screen
         run: node verify-owner-real-browser.mjs
       - name: Erase temporary config
         if: always()
