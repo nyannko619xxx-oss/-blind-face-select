@@ -130,7 +130,7 @@ jobs:
             const ownerClaims=await Promise.all(Array.from({length:20},()=>request('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:humanCode}})));
             const humanWinners=ownerClaims.filter(r=>r.status===201),humanLosers=ownerClaims.filter(r=>r.status===410);
             try{
-              if(humanWinners.length!==1||humanLosers.length!==19)throw Error('owner_claim_race_'+humanWinners.length+'_'+humanLosers.length);
+              if(humanWinners.length!==1||humanLosers.length!==19)throw Error('owner_claim_race_'+humanWinners.length+'_'+humanLosers.length+'_other_'+ownerClaims.filter(r=>r.status!==201&&r.status!==410).map(r=>r.status).join('_'));
               expect(await request('/v1/sample/fixture',{token:humanWinners[0].value.sessionToken}),200,'human_owner_fixture');
               expect(await request('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:humanCode}}),410,'owner_once');
             }finally{
