@@ -1,3 +1,9 @@
+# Cloudflare real-environment activation gate — 2026-09-28
+
+**Status: BLOCKED before account operations; no live endpoint verification.** The access-controlled Worker/client checkpoint remains on a separate branch. The private 263-person staged master and metadata-only manifest are present outside Git; `wrangler.example.jsonc` fixes the Pages origin and metadata hash while leaving the private bucket name unresolved. JSONC/template metadata parsing passed locally. No Cloudflare connector, authenticated Wrangler session, or API credential was available in the Work environment, so no bucket, Worker, binding, secret, invite, live request, or public deployment was performed. The exact remaining activation and live test sequence is in `CLOUDFLARE_ACTIVATION.md`.
+
+Public `main`/Pages: unchanged. Production Selection Engine: unchanged. Phase 2: NOT PASS. Retrospective Trigger: UNADOPTED. Rights and Safari image loading: UNVERIFIED. Existing local harness results are preserved; they do not count as real-endpoint or iPad Safari verification.
+
 # Verification ledger — 2026-09-27
 
 The repository and GitHub Pages are the implementation baseline. `app.html` is the integrated flow. The original `index.html` Safari v0.3 tutorial remains available.
