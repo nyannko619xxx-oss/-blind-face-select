@@ -445,3 +445,10 @@ IMPLEMENTED on isolated Test branch: Owner-specific locally stored private Maste
 LOCAL VERIFIED: private 263-record file schema/partition validation (105 STARTO), 40 seeded STARTO engine completions with 5/4/3 stages, Owner/recipient routing unit checks, previous Invite/Owner regressions. Live Test endpoint and Safari human play are pending deployment verification. Official image rights remain UNVERIFIED. Phase 2 remains NOT PASS; Retrospective Trigger remains UNADOPTED.
 
 See `REAL_CANDIDATE_GATE.md` for storage/origin limitation and test boundary.
+
+
+#### Isolated Test deployment and browser verification
+
+GitHub Actions run `36443021579` for `checkpoint/owner-real-play` commit `8cb9f8b` completed SUCCESS. The exact Test Worker/static assets were deployed; live endpoint checks passed for Owner marker preservation (one existing claim), recipient `owner=false`, unauthorized requests and previous Invite behavior. A clean browser completed the unchanged 55-person fixture sender/recipient E2E (42 screens each, one-time Invite). A separate synthetic 263-record private file was selected in a mocked Owner browser session, with STARTO 105 gameplay reaching TOP9 in 53 screens; 5/4/3 display, resume, frozen Result reload and no candidate-data upload were verified. The mocked Owner session tests UI routing without exporting or logging the genuine Master and does not substitute for the human Owner's real Safari session.
+
+IMPLEMENTED and AUTOMATED VERIFIED for Test route and fixture/synthetic browser flows. Genuine official image load, crop, endurance, selection quality and physical iPad Safari Owner play remain UNVERIFIED. Rights remain UNVERIFIED. Public main remains `00b39fd5f7794fba44333cff1d183a6ecfa90931`, unchanged. Phase 2 remains NOT PASS; Retrospective Trigger remains UNADOPTED.
