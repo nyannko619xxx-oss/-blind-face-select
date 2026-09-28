@@ -1,0 +1,43 @@
+name: Discover isolated Cloudflare invite test
+on:
+  push:
+    branches: [checkpoint/anonymous-invite-sample-v0.1]
+    paths: [.github/workflows/discover-invite-test.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Resolve unique account and dedicated test D1 without logging identifiers
+        shell: bash
+        run: |
+          node <<'NODE'
+          const token=process.env.CLOUDFLARE_API_TOKEN;
+          if(!token){console.error('token_secret_missing');process.exit(1)}
+          const api=async path=>{
+            const r=await fetch('https://api.cloudflare.com/client/v4'+path,{
+              headers:{Authorization:'Bearer '+token,Accept:'application/json'}
+            });
+            if(!r.ok)throw Error('cloudflare_http_'+r.status);
+            const data=await r.json();
+            if(data.success!==true)throw Error('cloudflare_api_unsuccessful');
+            return data;
+          };
+          try{
+            const accounts=await api('/accounts?per_page=50');
+            if(accounts.result.length!==1 || (accounts.result_info?.total_count??1)!==1)
+              throw Error('account_not_unique');
+            const id=accounts.result[0].id;
+            if(!/^[a-f0-9]{32}$/i.test(id))throw Error('account_id_invalid');
+            const d1=await api('/accounts/'+id+'/d1/database?name=blind-face-select-invite-test-v01&per_page=50');
+            const exact=d1.result.filter(x=>x.name==='blind-face-select-invite-test-v01');
+            if(exact.length!==1)throw Error('test_d1_not_unique');
+            if(!/^[a-f0-9-]{36}$/i.test(exact[0].uuid))throw Error('d1_id_invalid');
+            console.log('unique_account_and_test_d1_resolved');
+          }catch(e){console.error(String(e.message).replace(/[^a-z0-9_]/gi,'_'));process.exit(1)}
+          NODE
