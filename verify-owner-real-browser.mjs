@@ -34,8 +34,10 @@ try{
   for(const setId of ['JUNIOR_SELECT','ALL_SELECT']){
     await page.locator(`.mode-card[data-set="${setId}"]`).click();
     await page.getByRole('button',{name:'選考を始める'}).click();
+    await page.locator('.owner-selection .game-face').first().waitFor();
     assert.equal(await page.locator('.owner-selection .game-face').count(),5);
     await page.reload();await page.locator(`.mode-card[data-set="${setId}"]`).click();
+    await page.locator('.owner-selection .game-face').first().waitFor();
     assert.equal(await page.locator('.owner-selection .game-face').count(),5);
     await page.getByRole('button',{name:'ホームへ'}).click();
   }
