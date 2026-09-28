@@ -1,4 +1,4 @@
-const $=id=>document.getElementById(id),KEY='bfs-invite-sample-session-v0.1';
+const $=id=>document.getElementById(id),KEY='bfs-invite-sample-session-v0.1',OWNER_KEY='bfs-invite-sample-owner-code-v0.1';
 const endpoint=new URL(location.href).origin;
 let sessionToken=localStorage.getItem(KEY),invitationUrl='',pendingInvite=null;
 const status=s=>$('status').textContent=s;
@@ -7,11 +7,11 @@ async function api(path,{method='GET',body,authorized=true}={}){
   const result=await fetch(endpoint+path,{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store',referrerPolicy:'no-referrer'});
   const json=await result.json();if(!result.ok)throw Object.assign(Error(json.error||'request_failed'),{code:result.status});return json;
 }
-function showAccess(message){$('access').hidden=false;$('play').hidden=$('invitePanel').hidden=true;status(message);$('claimInvite').hidden=!pendingInvite;$('devOwner').hidden=!['localhost','127.0.0.1'].includes(location.hostname);$('accessHelp').textContent=$('devOwner').hidden?'Ownerから招待URLを受け取ってください。':'ローカル試験ではOwnerを発行できます。'}
+function showAccess(message){$('access').hidden=false;$('play').hidden=$('invitePanel').hidden=true;status(message);$('claimInvite').hidden=!pendingInvite;$('ownerSetup').hidden=!!pendingInvite;$('ownerPanel').hidden=!!pendingInvite||!sessionStorage.getItem(OWNER_KEY);if(!$('ownerPanel').hidden)$('ownerCode').value=sessionStorage.getItem(OWNER_KEY);$('devOwner').hidden=!['localhost','127.0.0.1'].includes(location.hostname);$('accessHelp').textContent=$('devOwner').hidden?'招待URLを受け取るか、初回Owner設定を行ってください。':'ローカル試験ではOwnerを発行できます。'}
 async function showSession(){
   try{
     const [me,fixture]=await Promise.all([api('/v1/sample/session'),api('/v1/sample/fixture')]);
-    $('access').hidden=true;$('play').hidden=$('invitePanel').hidden=false;
+    $('access').hidden=$('ownerPanel').hidden=true;$('play').hidden=$('invitePanel').hidden=false;
     $('quota').textContent=`JST ${me.jstDay}：${me.inviteAvailable?'本日の招待枠あり':'本日の招待枠を使用済み'}。Session期限 ${new Date(me.expiresAt).toLocaleString('ja-JP')}`;
     $('makeInvite').disabled=!me.inviteAvailable;
     $('cards').replaceChildren();const selected=new Set();
@@ -30,6 +30,21 @@ $('claimInvite').onclick=async()=>{
   try{const claimed=await api('/v1/sample/claim',{method:'POST',body:{inviteToken:pendingInvite},authorized:false});pendingInvite=null;sessionToken=claimed.sessionToken;localStorage.setItem(KEY,sessionToken);await showSession()}
   catch(error){pendingInvite=null;showAccess(error.code===410?'この招待は使用済み、または期限切れです。':'招待を受け取れませんでした。')}
   finally{$('claimInvite').disabled=false}
+};
+$('ownerSetup').onclick=()=>{
+  let code=sessionStorage.getItem(OWNER_KEY);
+  if(!code){code=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');sessionStorage.setItem(OWNER_KEY,code)}
+  $('ownerCode').value=code;$('ownerPanel').hidden=false;status('このコードを専用Test Worker Secretへ登録してください。');
+};
+$('copyOwnerCode').onclick=async()=>{
+  try{await navigator.clipboard.writeText($('ownerCode').value);status('Ownerコードをコピーしました。CloudflareのSecret欄だけへ貼ってください。')}
+  catch{$('ownerCode').select();status('コピーできませんでした。選択されたコードをコピーしてください。')}
+};
+$('ownerClaim').onclick=async()=>{
+  $('ownerClaim').disabled=true;
+  try{const data=await api('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:sessionStorage.getItem(OWNER_KEY)},authorized:false});sessionToken=data.sessionToken;localStorage.setItem(KEY,sessionToken);sessionStorage.removeItem(OWNER_KEY);$('ownerCode').value='';await showSession()}
+  catch(error){status(error.code===503?'CloudflareのSecret登録・反映を確認してください。':error.code===410?'初回Owner枠は使用済みです。':error.code===403?'登録したコードが一致しません。':'Owner開始に失敗しました。')}
+  finally{$('ownerClaim').disabled=false}
 };
 $('makeInvite').onclick=async()=>{
   $('makeInvite').disabled=true;
