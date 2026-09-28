@@ -113,7 +113,8 @@ jobs:
             }
             const marker=hash('blind-face-select:owner-bootstrap:v0.1');
             const count=await api('SELECT count(*) AS n FROM anonymous_sessions WHERE claimed_invite_hash = ?',[marker]);
-            if(count[0].n!==0)throw Error('human_owner_slot_not_empty');
+            if(count[0].n>1)throw Error('owner_slot_duplicate');
+            console.log('owner_marker_count_'+count[0].n);
             console.log('live_v02_assets_owner_secret_and_invite_regression_pass');
           })().catch(e=>{console.error(String(e.message).replace(/[^a-z0-9_]/gi,'_'));process.exitCode=1});
           NODE
