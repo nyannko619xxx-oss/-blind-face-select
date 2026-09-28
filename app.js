@@ -1,21 +1,53 @@
 import {createSelection,nextQuestion,submitChoice,selectionAudit} from './selection-engine.js?v=2';
 import {createRevealBoard} from './reveal-board.js?v=1';
+import {provision,catalogRecord,validateMaster,SET_IDS} from './candidate-provision.js?v=1';
 const $=id=>document.getElementById(id),KEY='blind-face-select-v2';
 const phases={preliminary:'PRELIMINARY',main:'MAIN ROUND',late:'LATE ROUND',recovery:'BORDERLINE RECHECK',boundary:'TOP9 BORDERLINE',rank:'DIRECT COMPARISON'};
 let db=read(),catalog=null,player=null,session=null,question=null,picks=new Set(),previous=null,resultBoard=null,sharedBoard=null;
 function read(){try{const data=JSON.parse(localStorage.getItem(KEY));if(data&&Array.isArray(data.players)&&data.sessions){data.archive=data.archive||{};return data}}catch{}return {players:[],sessions:{},archive:{}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function visible(id){for(const section of document.querySelectorAll('main>section'))section.hidden=section.id!==id;document.body.classList.toggle('in-result',id==='result'||id==='shared');window.scrollTo(0,0)}
-function openCatalog(){return new Promise((resolve,reject)=>{const req=indexedDB.open('blind-face-select-assets',1);req.onupgradeneeded=()=>req.result.createObjectStore('catalogs');req.onerror=()=>reject(req.error);req.onsuccess=()=>{const d=req.result,t=d.transaction('catalogs','readonly'),g=t.objectStore('catalogs').get('active');g.onsuccess=()=>resolve(g.result);g.onerror=()=>reject(g.error);t.oncomplete=()=>d.close()}})}
 function normalize(c){return {id:c.candidate_id||c.id,name:c.display_name||c.name,group:c.group||c.affiliation||'',officialCategory:c.official_category||c.officialCategory||'UNCLASSIFIED',imageUrl:c.image_source_url||c.imageUrl,sourceUrl:c.official_profile_url||c.sourceProfileUrl,imageStatus:c.image_status||'unverified'}}
-function validCatalog(d){const entries=d?.candidate_master||d?.candidates;if(!Array.isArray(entries)||entries.length<9||entries.length>300)return false;const c=entries.map(normalize);return c.every(x=>x.id&&x.name&&x.imageUrl?.startsWith('https://')&&x.sourceUrl?.startsWith('https://'))&&new Set(c.map(x=>x.id)).size===c.length}
-function configureCatalog(d){if(!validCatalog(d))return;const candidates=(d.candidate_master||d.candidates).map(normalize),sets=d.candidate_sets;catalog={version:d.master_version||d.version,candidates,sets:sets||null};for(const [id,label] of [['STARTO_SELECT','STARTO SELECT'],['JUNIOR_SELECT','JUNIOR SELECT'],['ALL_SELECT','ALL SELECT']]){const opt=[...$('set').options].find(o=>o.value===id);const ids=sets?.[id]?.ids;if(ids&&ids.every(x=>candidates.some(c=>c.id===x))){opt.disabled=false;opt.textContent=`${label}（${ids.length}人）`}}$('catalogMessage').textContent=sets?`Master ${catalog.version}。公式画像URLは端末内の候補表から参照します。`:'旧形式の写真カタログです。3モード用Masterを設定すると利用できます。'}
-openCatalog().then(d=>{if(d)configureCatalog(d);else $('catalogMessage').textContent='候補Masterは未設定です。架空IDで操作試験ができます。'}).catch(()=>$('catalogMessage').textContent='端末内カタログを読み込めません。');
+const entryParams=new URLSearchParams(location.search),requestedSet=entryParams.get('set'),requestedVersion=entryParams.get('version');
+function configureCatalog(d){
+  validateMaster(d);
+  const candidates=d.candidate_master.map(normalize),sets=d.candidate_sets;
+  catalog={version:d.master_version,candidates,sets};
+  for(const [id,label] of [['STARTO_SELECT','STARTO SELECT'],['JUNIOR_SELECT','JUNIOR SELECT'],['ALL_SELECT','ALL SELECT']]){
+    const opt=[...$('set').options].find(o=>o.value===id);
+    opt.disabled=false;opt.textContent=`${label}（${sets[id].ids.length}人）`;
+  }
+  if(SET_IDS.includes(requestedSet))$('set').value=requestedSet;
+  $('begin').disabled=false;
+}
+async function loadCatalog(){
+  $('begin').disabled=true;$('retryCatalog').hidden=true;$('catalogMessage').textContent='候補データを確認中…';
+  try{
+    const {master,status}=await provision({requestedVersion});configureCatalog(master);
+    $('catalogMessage').textContent=`${catalog.version}／${status==='cached'?'保存済みデータを使用':status==='restored'?'保存済みVersionを復元':'候補データを取得して保存'}。`;
+  }catch(error){
+    try{
+      const existing=await catalogRecord('get','active');
+      if(existing&&(!requestedVersion||existing.master_version===requestedVersion)){configureCatalog(existing);$('catalogMessage').textContent=`候補データの更新を確認できませんでした。保存済み ${catalog.version} を使用します。`;return}
+    }catch{}
+    $('catalogMessage').textContent='候補データを取得できませんでした。'+error.message;
+    $('retryCatalog').hidden=false;
+  }
+}
+$('retryCatalog').onclick=loadCatalog;
+loadCatalog();
 function refreshPlayers(){const select=$('playerList'),current=select.value;select.replaceChildren(new Option('新しいプレイヤー',''));for(const p of db.players)select.add(new Option(p.nickname||'名前なし',p.id));select.value=current;if(!select.value)select.value='';select.onchange=()=>{const p=db.players.find(x=>x.id===select.value),latest=p&&db.sessions[p.id];$('nickname').value=p?.nickname||'';$('age').value=p?.age||'';$('nickname').disabled=!!p;$('age').disabled=!!p;$('resume').hidden=!latest||latest.state.phase==='complete';$('past').hidden=!latest||latest.state.phase!=='complete';const history=p?(db.archive[p.id]||[]):[];const list=$('historyList');list.replaceChildren();history.forEach((s,i)=>list.add(new Option(`${new Date(s.completedAt||s.createdAt).toLocaleDateString('ja-JP')}／${s.setId||s.setVersion} × ${s.visualMode||'NORMAL'}／${s.state.phase==='complete'?'完了':'途中'}`,String(i))));$('historyWrap').hidden=$('historyOpen').hidden=history.length===0};select.onchange()}
 function selectedPlayer(){const id=$('playerList').value;if(id)return db.players.find(p=>p.id===id);const p={id:crypto.randomUUID(),nickname:$('nickname').value.trim(),age:$('age').value,createdAt:new Date().toISOString()};db.players.push(p);$('playerList').value=p.id;return p}
 function persist(){session.updatedAt=new Date().toISOString();db.sessions[player.id]=session;save()}
 function candidateRecords(){return session.selectionSnapshot?.candidates||session.candidates}
-function begin(){const setId=$('set').value,real=setId!=='demo';if(real&&(!catalog?.sets?.[setId]||$('set').selectedOptions[0].disabled)){$('catalogMessage').textContent='この候補セットのMasterを設定してください。';return}player=selectedPlayer();const old=db.sessions[player.id];if(old){db.archive[player.id]=db.archive[player.id]||[];db.archive[player.id].unshift(old)}const set=catalog?.sets?.[setId],byId=new Map(catalog?.candidates.map(c=>[c.id,c])||[]),candidates=real?set.ids.map(id=>({...byId.get(id)})):Array.from({length:140},(_,i)=>({id:'demo-'+String(i+1).padStart(3,'0'),name:'架空候補 '+String(i+1).padStart(3,'0'),group:'操作試験',officialCategory:'DEMO',imageUrl:null,sourceUrl:null}));const createdAt=new Date().toISOString(),setVersion=real?set.version:'demo-140-v2',visualMode='NORMAL';session={playerId:player.id,setId,setVersion,masterVersion:real?catalog.version:null,visualMode,type:real?'catalog':'demo',selectionSnapshot:{capturedAt:createdAt,setId,setVersion,visualMode,candidates},state:createSelection(candidates.map(c=>c.id),{lateSize:candidates.length>200?4:3}),createdAt,completedAt:null};previous=null;persist();renderQuestion()}
+function begin(){
+  const setId=$('set').value;
+  if(!SET_IDS.includes(setId)||!catalog?.sets?.[setId]||$('set').selectedOptions[0].disabled){$('catalogMessage').textContent='候補データを取得できませんでした。再読み込みしてください。';$('retryCatalog').hidden=false;return}
+  player=selectedPlayer();const old=db.sessions[player.id];if(old){db.archive[player.id]=db.archive[player.id]||[];db.archive[player.id].unshift(old)}
+  const set=catalog.sets[setId],byId=new Map(catalog.candidates.map(c=>[c.id,c])),candidates=set.ids.map(id=>({...byId.get(id)}));
+  const createdAt=new Date().toISOString(),setVersion=set.version,visualMode='NORMAL';
+  session={playerId:player.id,setId,setVersion,masterVersion:catalog.version,visualMode,type:'catalog',selectionSnapshot:{capturedAt:createdAt,setId,setVersion,visualMode,candidates},state:createSelection(candidates.map(c=>c.id),{lateSize:candidates.length>200?4:3}),createdAt,completedAt:null};previous=null;persist();renderQuestion()
+}
 function resume(){player=db.players.find(p=>p.id===$('playerList').value);session=db.sessions[player.id];previous=null;if(session.state.phase==='complete')showResult({instant:true});else renderQuestion()}
 function blindMap(){const ids=candidateRecords().map(c=>c.id);return new Map(ids.map((id,i)=>[id,'FACE '+String(i+1).padStart(3,'0')]))}
 function renderQuestion(){question=nextQuestion(session.state);picks=new Set();if(!question){session.completedAt=session.completedAt||new Date().toISOString();persist();showResult();return}persist();visible('game');$('phase').textContent=phases[question.phase];$('instruction').textContent=question.phase==='rank'||question.phase==='boundary'?'より好みの顔を1人選択':`${question.ids.length}人から${question.max}人まで選択`;$('progress').textContent=`${session.state.history.length+1}画面目｜最大${question.max}人`;$('uncertain').checked=false;$('faces').replaceChildren();const byId=new Map(candidateRecords().map(c=>[c.id,c])),labels=blindMap();let loading=0;const canAdvance=()=>picks.size>=question.min&&loading===0&&![...$('faces').children].some(el=>el.disabled);for(const [position,id] of question.ids.entries()){const c=byId.get(id),b=document.createElement('button');b.className='face';b.type='button';b.dataset.id=id;b.setAttribute('aria-pressed','false');b.setAttribute('aria-label','顔画像 '+(position+1));if(c?.imageUrl){loading++;const img=document.createElement('img');img.alt='';img.onload=()=>{loading--;$('next').disabled=!canAdvance()};img.onerror=()=>{loading--;b.disabled=true;b.replaceChildren(document.createTextNode('画像を表示できません'));$('gameStatus').textContent='表示できない写真があります。選考を中断し、カタログの画像URLを確認してください。';$('next').disabled=true};img.src=c.imageUrl;b.append(img)}else b.textContent=labels.get(id);b.onclick=()=>{if(b.disabled)return;if(picks.has(id))picks.delete(id);else if(picks.size<question.max)picks.add(id);for(const el of $('faces').children)el.setAttribute('aria-pressed',String(picks.has(el.dataset.id)));$('next').disabled=!canAdvance();$('gameStatus').textContent=`${picks.size}人を選択中`};$('faces').append(b)}$('gameStatus').textContent=loading?'画像を読み込み中…':'0人を選択中';$('next').disabled=true;$('undo').disabled=!previous}
@@ -45,6 +77,7 @@ function shared(){
     const data=decode(location.hash.slice(7));
     if(!Number.isFinite(data.expiresAt)||Date.now()>data.expiresAt){$('sharedStatus').textContent='この共有リンクの有効期限は終了しました。';return true}
     if(!Array.isArray(data.ranking)||data.ranking.length!==9)throw Error('invalid');
+    $('selfSelect').href=SET_IDS.includes(data.setId)?'app.html?set='+encodeURIComponent(data.setId)+(data.version?'&version='+encodeURIComponent(data.version):''):'app.html';
     $('sharedStatus').textContent=`有効期限：${new Date(data.expiresAt).toLocaleString('ja-JP')}／候補セット：${data.version}`;
     const seenKey='bfs-shared-seen-'+location.hash.length+'-'+[...location.hash].reduce((h,c)=>(Math.imul(h,33)^c.charCodeAt(0))>>>0,5381);
     let seen=false;try{seen=sessionStorage.getItem(seenKey)==='1'}catch{}
