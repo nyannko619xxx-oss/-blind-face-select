@@ -1,3 +1,11 @@
+# Invite Test Reset and Real Candidate Gate — 2026-09-28
+
+**Task A IMPLEMENTED / local scope and live Test reset VERIFIED.** Dedicated [Test-only reset workflow](.github/workflows/reset-test-owner-quota.yml) has no Worker route or participant control. Initial [run](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36437654514) inspected one claimed Owner Invite on the current JST day; explicit rerun (attempt 2) removed exactly one Owner daily Invite row. It never changed the claimed recipient's Session row, any other issuer, or Production daily logic. The workflow refuses an outstanding unclaimed Invite. Only an authenticated GitHub Actions rerun can execute it; secrets and session identifiers were not output. See [Real Candidate Gate](REAL_CANDIDATE_GATE.md) for exact scope and reuse instructions.
+
+**Task B Gate STOP before real subset deploy.** Private frozen Master measured at STARTO 105 / Junior 158, with official image URLs on the corresponding official origins. No image binary or identity mapping was placed in Public Git, Worker assets or D1. The Test URL is publicly reachable and the one/day invite chain is not restricted to family; a protected endpoint would still deliver official image URLs to any invite holder. Both official site policies restrict use beyond private use without prior rights-holder consent and do not expressly authorize third-party invited-app embedding. Technical hotlink success cannot decide that scope. Real candidate subset, official images and R2 remain **NOT CONNECTED**; rights **UNVERIFIED**. The bounded options/impacts are in [Real Candidate Gate](REAL_CANDIDATE_GATE.md). Public main and Production Selection Engine unchanged, Phase 2 NOT PASS, Retrospective Trigger UNADOPTED.
+
+---
+
 # Anonymous Invite Sample v0.2 fixture E2E — 2026-09-28
 
 **Dedicated Cloudflare Test DEPLOYED / automated E2E VERIFIED; iPad and iPhone Safari v0.2 QA PENDING.** v0.1 anonymous Invite/Claim/Session Worker routes, JST one-per-day quota, single-use D1 constraint, and human Owner record remain intact. User-reported v0.1 real-device core flow is PASS. Existing Owner marker count was observed as **1**; the earlier assumption of 0 was stale and removed from the v0.2 test without mutating the human record.
