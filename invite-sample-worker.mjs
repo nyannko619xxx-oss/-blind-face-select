@@ -5,6 +5,7 @@ const random=()=>{const a=crypto.getRandomValues(new Uint8Array(32));return Arra
 const hash=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 export const jstDay=now=>new Date(now+9*60*60*1000).toISOString().slice(0,10);
 const bearer=request=>{const v=request.headers.get('Authorization')||'';return /^Bearer [a-f0-9]{64}$/.test(v)?v.slice(7):null};
+const equalHex=(a,b)=>{if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0};
 const response=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',...headers}});
 function cors(origin,allowed){return {'Access-Control-Allow-Origin':origin===allowed?origin:'null','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Authorization, Content-Type','Vary':'Origin'}}
 async function sessionFor(request,db,now){const token=bearer(request);if(!token)return null;return db.prepare('SELECT session_id, expires_at FROM anonymous_sessions WHERE token_hash = ? AND expires_at > ?').bind(await hash(token),now).first()}
@@ -13,6 +14,18 @@ export async function handleInviteRequest(request,env,{now=Date.now()}={}){
   if(!env.INVITE_DB||!env.APP_ORIGIN)return response({error:'unconfigured'},503,h);
   if(origin&&origin!==env.APP_ORIGIN)return response({error:'forbidden_origin'},403,h);
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:h});
+  if(request.method==='POST'&&url.pathname==='/v1/sample/owner/claim'){
+    if(!env.OWNER_BOOTSTRAP_CODE)return response({error:'owner_not_ready'},503,h);
+    let code;try{code=(await request.json()).ownerCode}catch{return response({error:'invalid_owner_code'},400,h)}
+    if(typeof code!=='string'||!(/^[a-f0-9]{64}$/).test(code))return response({error:'invalid_owner_code'},400,h);
+    if(!equalHex(await hash(code),await hash(env.OWNER_BOOTSTRAP_CODE)))return response({error:'invalid_owner_code'},403,h);
+    const token=random(),id=random(),marker=await hash('blind-face-select:owner-bootstrap:v0.1');
+    try{
+      // A fixed UNIQUE marker is the linearization point: only one human Owner claim.
+      await env.INVITE_DB.prepare('INSERT INTO anonymous_sessions (session_id, token_hash, claimed_invite_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?)').bind(id,await hash(token),marker,now,now+SESSION_MS).run();
+      return response({sessionToken:token,expiresAt:now+SESSION_MS},201,h);
+    }catch(error){if(/UNIQUE|constraint/i.test(String(error)))return response({error:'owner_already_claimed'},410,h);throw error}
+  }
   if(request.method==='POST'&&url.pathname==='/v1/sample/admin/bootstrap'){
     // Admin bootstrap is outside normal Player UI; never write the secret to public config.
     if(!env.ADMIN_SECRET||request.headers.get('Authorization')!=='Bearer '+env.ADMIN_SECRET)return response({error:'unauthorized'},401,h);
