@@ -1,4 +1,5 @@
 import {mountFixtureGame} from './game.js?v=sample-v02-1';
+import {mountOwnerRealGame} from './real-game.js?v=owner-real-01';
 const $=id=>document.getElementById(id),KEY='bfs-invite-sample-session-v0.1',OWNER_KEY='bfs-invite-sample-owner-code-v0.1';
 const endpoint=new URL(location.href).origin;
 let sessionToken=localStorage.getItem(KEY),invitationUrl='',pendingInvite=null;
@@ -20,7 +21,9 @@ async function showSession(){
     $('quota').textContent=`今日の招待：${me.inviteAvailable?'利用できます':'使用済みです'}。招待枠は毎日0:00（日本時間）に更新されます。`;
     $('makeInvite').disabled=!me.inviteAvailable;
     if(!Array.isArray(fixture.cards)||fixture.cards.length!==5)throw new Error('sample_unavailable');
-    await mountFixtureGame($('play'),sessionToken);
+    $('modeNote').textContent=me.owner?'Owner用の実候補テストです。候補ファイルと結果はこの端末内に保存します。':'架空候補で遊べる体験版です。';
+    if(me.owner)await mountOwnerRealGame($('play'),sessionToken);
+    else await mountFixtureGame($('play'),sessionToken);
     status('準備ができました。');
     return true;
   }catch(error){

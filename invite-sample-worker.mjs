@@ -8,7 +8,7 @@ const bearer=request=>{const v=request.headers.get('Authorization')||'';return /
 const equalHex=(a,b)=>{if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0};
 const response=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',...headers}});
 function cors(origin,allowed){return {'Access-Control-Allow-Origin':origin===allowed?origin:'null','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Authorization, Content-Type','Vary':'Origin'}}
-async function sessionFor(request,db,now){const token=bearer(request);if(!token)return null;return db.prepare('SELECT session_id, expires_at FROM anonymous_sessions WHERE token_hash = ? AND expires_at > ?').bind(await hash(token),now).first()}
+async function sessionFor(request,db,now){const token=bearer(request);if(!token)return null;return db.prepare('SELECT session_id, expires_at, claimed_invite_hash FROM anonymous_sessions WHERE token_hash = ? AND expires_at > ?').bind(await hash(token),now).first()}
 export async function handleInviteRequest(request,env,{now=Date.now()}={}){
   const url=new URL(request.url),origin=request.headers.get('Origin'),h=cors(origin,env.APP_ORIGIN);
   if(!env.INVITE_DB||!env.APP_ORIGIN)return response({error:'unconfigured'},503,h);
@@ -57,7 +57,8 @@ export async function handleInviteRequest(request,env,{now=Date.now()}={}){
     if(!session)return response({error:'session_required'},401,h);
     if(request.method==='GET'&&url.pathname==='/v1/sample/session'){
       const day=jstDay(now),used=await env.INVITE_DB.prepare('SELECT 1 FROM single_use_invites WHERE issuer_session_id = ? AND issued_jst_day = ?').bind(session.session_id,day).first();
-      return response({active:true,expiresAt:session.expires_at,jstDay:day,inviteAvailable:!used},200,h);
+      const ownerMarker=await hash('blind-face-select:owner-bootstrap:v0.1');
+      return response({active:true,owner:session.claimed_invite_hash===ownerMarker,expiresAt:session.expires_at,jstDay:day,inviteAvailable:!used},200,h);
     }
     if(request.method==='GET'&&url.pathname==='/v1/sample/fixture')return response({cards:['FACE 01','FACE 02','FACE 03','FACE 04','FACE 05'],experimental:true},200,h);
     if(request.method==='POST'&&url.pathname==='/v1/sample/invites'){

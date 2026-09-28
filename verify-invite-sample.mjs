@@ -18,6 +18,7 @@ const ownerClaims=await Promise.all(Array.from({length:20},()=>call('/v1/sample/
 assert.equal(ownerClaims.filter(x=>x.status===201).length,1);
 assert.equal(ownerClaims.filter(x=>x.status===410).length,19);
 const humanOwnerToken=ownerClaims.find(x=>x.status===201).data.sessionToken;
+assert.equal((await call('/v1/sample/session',{token:humanOwnerToken,time:before})).data.owner,true);
 assert.equal((await call('/v1/sample/fixture',{token:humanOwnerToken,time:before})).status,200);
 const ownerCode=env.OWNER_BOOTSTRAP_CODE;delete env.OWNER_BOOTSTRAP_CODE;
 assert.equal((await call('/v1/sample/owner/claim',{method:'POST',body:{ownerCode},time:before})).status,503);
@@ -30,6 +31,7 @@ assert.equal((await call('/v1/sample/invites',{method:'POST',token:ownerToken,ti
 const attempts=await Promise.all(Array.from({length:30},()=>call('/v1/sample/claim',{method:'POST',body:{inviteToken:first.data.inviteToken},time:before+1000})));
 assert.equal(attempts.filter(x=>x.status===201).length,1);assert.equal(attempts.filter(x=>x.status===410).length,29);
 const child=attempts.find(x=>x.status===201).data.sessionToken;
+assert.equal((await call('/v1/sample/session',{token:child,time:before+2000})).data.owner,false);
 assert.equal((await call('/v1/sample/session',{token:child,time:before+2000})).data.inviteAvailable,true);
 const forwarded=await call('/v1/sample/invites',{method:'POST',token:child,time:before+2000});assert.equal(forwarded.status,201);
 assert.equal((await call('/v1/sample/claim',{method:'POST',body:{inviteToken:forwarded.data.inviteToken},time:before+3000})).status,201);

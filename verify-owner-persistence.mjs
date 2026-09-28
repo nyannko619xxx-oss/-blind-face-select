@@ -8,7 +8,7 @@ const sessionStorage={getItem:()=>null,removeItem(){}};
 const createPage=({validCode=null}={})=>{
   const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,{hidden:false,disabled:false,value:'',textContent:'',children:[],focus(){},replaceChildren(){this.children=[]},append(x){this.children.push(x)},setAttribute(){}});return elements.get(id)};
   const calls=[];
-  const context={mountFixtureGame:async()=>{},document:{getElementById:get,createElement:()=>({setAttribute(){}})},location:{href:'https://sample.example/',hostname:'sample.example',hash:'',pathname:'/',search:''},history:{replaceState(){}},localStorage:storage,sessionStorage,navigator:{clipboard:{}},crypto:globalThis.crypto,URL,Date,Set,Promise,console,fetch:async(path,init)=>{
+  const context={mountFixtureGame:async()=>{},mountOwnerRealGame:async()=>{},document:{getElementById:get,createElement:()=>({setAttribute(){}})},location:{href:'https://sample.example/',hostname:'sample.example',hash:'',pathname:'/',search:''},history:{replaceState(){}},localStorage:storage,sessionStorage,navigator:{clipboard:{}},crypto:globalThis.crypto,URL,Date,Set,Promise,console,fetch:async(path,init)=>{
     calls.push({path,body:init.body});
     if(path.endsWith('/v1/sample/owner/claim')){
       const code=JSON.parse(init.body).ownerCode;
@@ -16,7 +16,7 @@ const createPage=({validCode=null}={})=>{
     }
     return {ok:true,status:200,json:async()=>path.endsWith('/session')?{jstDay:'2026-09-28',inviteAvailable:true,expiresAt:Date.now()+100000}:{cards:['FACE 01']}};
   }};
-  vm.runInNewContext(source.replace(/^import[^\n]+\n/,''),context);
+  vm.runInNewContext(source.replace(/^import[^\n]+\n/gm,''),context);
   return {get,calls};
 };
 let page=createPage();await new Promise(resolve=>setImmediate(resolve));

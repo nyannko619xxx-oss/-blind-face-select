@@ -436,3 +436,12 @@ GitHub Pages cloud-browser smoke verification (synthetic nine-person shared payl
 **IMPLEMENTED / LOCAL API VERIFIED; REMOTE/HUMAN UNVERIFIED.** Separate experimental Worker, D1-compatible schema, static UI, loopback-only local server and two automated tests. Fixture has five fictional FACE labels and no candidate mapping or image binaries. Recipient explicitly presses **招待を受け取る** so page previews do not consume the invite. `node verify-invite-sample.mjs` passed: JST midnight issue reset, one/session/day, 30 concurrent claims yielded exactly one recipient, re-invite by recipient, unauthorized and expiry checks. `node verify-invite-sample-http.mjs` passed the local HTTP flow and static asset access. No production Selection Engine or public main/Pages change. See `ANONYMOUS_INVITE_SAMPLE.md` for run instructions, mechanism, and limits.
 
 Cloudflare D1, browser Share Sheet, iPad Safari, human test, real Candidate Master access and account billing remain UNVERIFIED. No R2 subscription, Worker or D1 creation, payment method, or public deploy occurred. Phase 2 NOT PASS; Retrospective Trigger UNADOPTED.
+
+
+### Owner-only Real Candidate Test checkpoint (2026-09-28)
+
+IMPLEMENTED on isolated Test branch: Owner-specific locally stored private Master, STARTO 105 frozen Selection/Resume/TOP9 reveal, existing Session Owner marker routing. Recipients use the existing fixture. No public main, Production Selection Engine, R2, D1 candidate payload, or real image binary changes.
+
+LOCAL VERIFIED: private 263-record file schema/partition validation (105 STARTO), 40 seeded STARTO engine completions with 5/4/3 stages, Owner/recipient routing unit checks, previous Invite/Owner regressions. Live Test endpoint and Safari human play are pending deployment verification. Official image rights remain UNVERIFIED. Phase 2 remains NOT PASS; Retrospective Trigger remains UNADOPTED.
+
+See `REAL_CANDIDATE_GATE.md` for storage/origin limitation and test boundary.
