@@ -4,7 +4,7 @@ import {startLocalSample} from './invite-sample-local.mjs';
 const {server,origin}=startLocalSample({port:8791});
 try{
   await new Promise(resolve=>server.once('listening',resolve));
-  const html=await fetch(origin+'/index.html');assert.equal(html.status,200);assert.match(await html.text(),/匿名招待 Sample v0\.1/);
+  const html=await fetch(origin+'/index.html');assert.equal(html.status,200);assert.match(await html.text(),/Blind Face Select/);
   const script=await fetch(origin+'/app.js');assert.equal(script.status,200);assert.match(await script.text(),/navigator\.share/);
   const denied=await fetch(origin+'/v1/sample/fixture');assert.equal(denied.status,401);
   const boot=await fetch(origin+'/dev/owner',{redirect:'manual'});assert.equal(boot.status,302);
