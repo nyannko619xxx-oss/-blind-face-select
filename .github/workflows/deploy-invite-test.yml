@@ -75,6 +75,13 @@ jobs:
           node <<'NODE'
           const fs=require('node:fs'),crypto=require('node:crypto');
           const origin=process.env.SAMPLE_ORIGIN,admin=fs.readFileSync('.invite-test-admin','utf8');
+          const cfg=JSON.parse(fs.readFileSync('.invite-test.wrangler.json','utf8'));
+          const dbChange=async (sql,param)=>{
+            const url='https://api.cloudflare.com/client/v4/accounts/'+cfg.account_id+'/d1/database/'+cfg.d1_databases[0].database_id+'/query';
+            const r=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+process.env.CLOUDFLARE_API_TOKEN,'Content-Type':'application/json'},body:JSON.stringify({sql,params:[param]})});
+            if(!r.ok)throw Error('d1_query_http_'+r.status);
+            const data=await r.json();if(!data.success||!data.result?.[0]?.success)throw Error('d1_query_failed');
+          };
           const request=async (path,{method='GET',token,body,foreign=false}={})=>{
             const headers={'Content-Type':'application/json',Origin:foreign?'https://foreign.invalid':origin};
             if(token)headers.Authorization='Bearer '+token;
@@ -100,10 +107,16 @@ jobs:
             expect(await request('/v1/sample/claim',{method:'POST',body:{inviteToken:invite}}),410,'used_invite');
             const recipient=winners[0].value.sessionToken;
             expect(await request('/v1/sample/session',{token:recipient}),200,'recipient_session');
-            expect(await request('/v1/sample/invites',{method:'POST',token:recipient}),201,'recipient_reinvite');
+            const nextInvite=expect(await request('/v1/sample/invites',{method:'POST',token:recipient}),201,'recipient_reinvite').inviteToken;
+            const tampered=nextInvite.slice(0,-1)+(nextInvite.endsWith('0')?'1':'0');
+            expect(await request('/v1/sample/claim',{method:'POST',body:{inviteToken:tampered}}),410,'tampered_invite');
+            await dbChange('UPDATE single_use_invites SET expires_at = 0 WHERE token_hash = ?',crypto.createHash('sha256').update(nextInvite).digest('hex'));
+            expect(await request('/v1/sample/claim',{method:'POST',body:{inviteToken:nextInvite}}),410,'expired_invite');
             const expiry=expect(await request('/v1/sample/invites',{method:'POST',token:recipient}),409,'recipient_daily_limit');
             if(!expiry.jstDay)throw Error('daily_limit_day_missing');
-            console.log('live_asset_auth_origin_invite_claim_20way_race_reinvite_pass');
+            await dbChange('UPDATE anonymous_sessions SET expires_at = 0 WHERE token_hash = ?',crypto.createHash('sha256').update(recipient).digest('hex'));
+            expect(await request('/v1/sample/session',{token:recipient}),401,'expired_session');
+            console.log('live_asset_auth_origin_invite_claim_20way_race_reinvite_expiry_tamper_pass');
           })().catch(e=>{console.error(String(e.message).replace(/[^a-z0-9_]/gi,'_'));process.exitCode=1});
           NODE
       - name: Erase ephemeral bootstrap material
