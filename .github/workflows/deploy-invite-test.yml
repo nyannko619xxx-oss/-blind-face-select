@@ -79,10 +79,11 @@ jobs:
             const headers={'Content-Type':'application/json',Origin:foreign?'https://foreign.invalid':origin};
             if(token)headers.Authorization='Bearer '+token;
             const r=await fetch(origin+path,{method,headers,body:body?JSON.stringify(body):undefined});
-            const value=await r.json();return {status:r.status,value};
+            const kind=r.headers.get('content-type')||'none';if(!kind.includes('application/json'))throw Error('non_json_'+path.replaceAll('/','_')+'_'+r.status+'_'+kind.replace(/[^a-z0-9]/gi,'_'));const value=await r.json();return {status:r.status,value};
           };
           const expect=(r,status,label)=>{if(r.status!==status)throw Error(label+'_status_'+r.status);return r.value};
           (async()=>{
+            await new Promise(resolve=>setTimeout(resolve,5000));
             const page=await fetch(origin+'/index.html');
             if(page.status!==200||!(await page.text()).includes('Blind Face Select'))throw Error('asset_not_served');
             expect(await request('/v1/sample/fixture'),401,'unauthorized_fixture');
