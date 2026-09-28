@@ -29,10 +29,12 @@ if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href){
   const day=jstDay(Date.now());
   const count=await query('SELECT count(*) AS n FROM single_use_invites WHERE issuer_session_id = ? AND issued_jst_day = ?',[owner[0].session_id,day]);
   if(count[0].n>1)throw Error('unexpected_owner_daily_rows');
+  const claimed=count[0].n===1?await query('SELECT count(*) AS n FROM anonymous_sessions WHERE claimed_invite_hash = (SELECT token_hash FROM single_use_invites WHERE issuer_session_id = ? AND issued_jst_day = ?)',[owner[0].session_id,day]):[{n:0}];
   if(process.env.RESET_TEST_OWNER_QUOTA!=='true'){
-    console.log('dry_run_test_owner_daily_invite_count_'+count[0].n);
+    console.log('dry_run_test_owner_daily_invite_count_'+count[0].n+'_claimed_'+claimed[0].n);
     process.exit(0);
   }
+  if(count[0].n===1&&claimed[0].n!==1)throw Error('outstanding_invite_not_reset');
   if(count[0].n===1)await query(resetSql,[ownerMarker,day]);
   const after=await query('SELECT count(*) AS n FROM single_use_invites WHERE issuer_session_id = ? AND issued_jst_day = ?',[owner[0].session_id,day]);
   if(after[0].n!==0)throw Error('reset_not_applied');
