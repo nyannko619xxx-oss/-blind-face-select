@@ -36,6 +36,7 @@ try{
   await page.getByRole('heading',{name:'顔だけで選んでみる'}).waitFor();
   const first=await play(page);assert(first.saw5&&first.saw4&&first.saw3&&first.reloaded);
   await page.getByRole('button',{name:'招待リンクを作る'}).click();
+  await page.locator('#shareArea').waitFor({state:'visible'});
   const link=await page.locator('#inviteLink').inputValue();assert(link.startsWith(origin+'/index.html#invite='));inviteHash=hash(link.split('#invite=')[1]);
   const recipient=await browser.newContext(),second=await recipient.newPage();
   await second.goto(link);await second.getByRole('button',{name:'招待を受け取る'}).click();
