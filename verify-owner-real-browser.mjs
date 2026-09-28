@@ -21,8 +21,10 @@ try{
     if(await page.locator('.owner-result').isVisible())break;
     const cards=page.locator('.owner-selection .game-face'),n=await cards.count();seen.add(n);
     assert.equal(await page.getByText('架空氏名0').count(),0,'blind_name_leak');
+    const before=await page.locator('.owner-selection p').first().textContent();
     await cards.first().click();
     await page.getByRole('button',{name:'次へ進む'}).click();
+    await page.waitForFunction(previous=>!document.querySelector('.owner-result').hidden||document.querySelector('.owner-selection p')?.textContent!==previous,before);
     if(screens===11){await page.reload();await page.locator('.owner-selection .game-face').first().waitFor();resumed=true}
   }
   assert.equal(await page.locator('.board-card').count(),9);assert(seen.has(5)&&seen.has(4)&&seen.has(3)&&resumed);assert.equal(candidateUpload,0);
