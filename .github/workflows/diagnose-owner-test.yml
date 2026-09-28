@@ -1,0 +1,58 @@
+name: Diagnose isolated Owner bootstrap
+on:
+  push:
+    branches: [checkpoint/anonymous-invite-sample-v0.1]
+    paths: [.github/workflows/diagnose-owner-test.yml]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read dedicated Worker, D1 marker and public routes
+        run: |
+          node <<'NODE'
+          const crypto=require('node:crypto'),fs=require('node:fs');
+          const token=process.env.CLOUDFLARE_API_TOKEN;
+          if(!token)throw Error('token_missing');
+          const api=async path=>{
+            const r=await fetch('https://api.cloudflare.com/client/v4'+path,{headers:{Authorization:'Bearer '+token}});
+            if(!r.ok)throw Error('cloudflare_http_'+r.status);
+            const data=await r.json();if(!data.success)throw Error('cloudflare_api_failed');return data.result;
+          };
+          (async()=>{
+            const accounts=await api('/accounts?per_page=50');
+            if(accounts.length!==1)throw Error('account_not_unique');
+            const account=accounts[0].id,name='blind-face-select-invite-test-v01';
+            const dbs=await api('/accounts/'+account+'/d1/database?name='+name+'&per_page=50');
+            const db=dbs.filter(x=>x.name===name);if(db.length!==1)throw Error('d1_not_unique');
+            const secrets=await api('/accounts/'+account+'/workers/scripts/'+name+'/secrets');
+            if(!Array.isArray(secrets))throw Error('secret_list_invalid');
+            const marker=crypto.createHash('sha256').update('blind-face-select:owner-bootstrap:v0.1').digest('hex');
+            const q=await fetch('https://api.cloudflare.com/client/v4/accounts/'+account+'/d1/database/'+db[0].uuid+'/query',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({sql:'SELECT count(*) AS n FROM anonymous_sessions WHERE claimed_invite_hash = ?',params:[marker]})});
+            if(!q.ok)throw Error('d1_query_http_'+q.status);
+            const data=await q.json();if(!data.success)throw Error('d1_query_failed');
+            const claimed=data.result?.[0]?.results?.[0]?.n;
+            const deployments=await api('/accounts/'+account+'/workers/scripts/'+name+'/deployments?per_page=1');
+            const base='https://blind-face-select-invite-test-v01.nyannko619xxx.workers.dev';
+            const live=await fetch(base+'/app.js',{cache:'no-store'});
+            const liveJs=await live.text(),source=fs.readFileSync('invite-sample-assets/app.js','utf8');
+            const sourceHash=crypto.createHash('sha256').update(source).digest('hex');
+            const liveHash=crypto.createHash('sha256').update(liveJs).digest('hex');
+            const probe=await fetch(base+'/v1/sample/owner/claim',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:JSON.stringify({ownerCode:'0'.repeat(64)})});
+            const probeJson=await probe.json();
+            console.log(JSON.stringify({
+              ownerSecretPresent:secrets.some(x=>x.name==='OWNER_BOOTSTRAP_CODE'),
+              adminSecretPresent:secrets.some(x=>x.name==='ADMIN_SECRET'),
+              ownerClaimedCount:claimed,
+              deploymentVersion:deployments?.deployments?.[0]?.versions?.[0]?.version_id||'unavailable',
+              liveJsMatchesBranch:sourceHash===liveHash,
+              ownerRouteStatus:probe.status,
+              ownerRouteError:probeJson.error||'none'
+            }));
+          })().catch(e=>{console.error(String(e.message).replace(/[^a-z0-9_]/gi,'_'));process.exitCode=1});
+          NODE
