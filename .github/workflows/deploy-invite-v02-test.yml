@@ -120,7 +120,7 @@ jobs:
             console.log('live_v02_assets_owner_secret_and_invite_regression_pass_55');
           })().catch(e=>{console.error(String(e.message).replace(/[^a-z0-9_]/gi,'_'));process.exitCode=1});
           NODE
-      - name: Clean-browser invite and fixture TOP9 E2E
+      - name: Clean-browser invite, asynchronous share and fixture TOP9 E2E
         run: node verify-invite-sample-v02-browser.mjs
       - name: Erase temporary config
         if: always()
