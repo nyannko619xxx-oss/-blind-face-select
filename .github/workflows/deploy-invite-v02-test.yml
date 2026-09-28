@@ -51,7 +51,7 @@ jobs:
           NODE
       - name: Install pinned Wrangler
         run: npm install --no-save --ignore-scripts wrangler@4.45.0
-      - name: Deploy UI repair preserving existing Worker Secret
+      - name: Deploy fixture UI preserving existing Worker Secret
         run: npx wrangler deploy --config=.owner-repair.wrangler.json
       - name: Verify live route, Secret binding and Invite regression
         run: |
