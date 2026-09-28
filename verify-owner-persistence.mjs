@@ -4,10 +4,11 @@ import vm from 'node:vm';
 const source=readFileSync(new URL('./invite-sample-assets/app.js',import.meta.url),'utf8');
 const state=new Map(),key='bfs-invite-sample-owner-code-v0.1';
 const storage={getItem:k=>state.get(k)??null,setItem:(k,v)=>state.set(k,String(v)),removeItem:k=>state.delete(k)};
+const sessionStorage={getItem:()=>null,removeItem(){}};
 const createPage=({validCode=null}={})=>{
-  const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,{hidden:false,disabled:false,value:'',textContent:'',children:[],replaceChildren(){this.children=[]},append(x){this.children.push(x)},setAttribute(){}});return elements.get(id)};
+  const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,{hidden:false,disabled:false,value:'',textContent:'',children:[],focus(){},replaceChildren(){this.children=[]},append(x){this.children.push(x)},setAttribute(){}});return elements.get(id)};
   const calls=[];
-  const context={document:{getElementById:get,createElement:()=>({setAttribute(){}})},location:{href:'https://sample.example/',hostname:'sample.example',hash:'',pathname:'/',search:''},history:{replaceState(){}},localStorage:storage,navigator:{clipboard:{}},crypto:globalThis.crypto,URL,Date,Set,Promise,console,fetch:async(path,init)=>{
+  const context={document:{getElementById:get,createElement:()=>({setAttribute(){}})},location:{href:'https://sample.example/',hostname:'sample.example',hash:'',pathname:'/',search:''},history:{replaceState(){}},localStorage:storage,sessionStorage,navigator:{clipboard:{}},crypto:globalThis.crypto,URL,Date,Set,Promise,console,fetch:async(path,init)=>{
     calls.push({path,body:init.body});
     if(path.endsWith('/v1/sample/owner/claim')){
       const code=JSON.parse(init.body).ownerCode;
@@ -19,6 +20,17 @@ const createPage=({validCode=null}={})=>{
   return {get,calls};
 };
 let page=createPage();await new Promise(resolve=>setImmediate(resolve));
+const oldCode='b'.repeat(64);
+page.get('restoreOwner').onclick();
+page.get('ownerCode').value=oldCode;
+page.get('ownerCode').oninput();
+assert.equal(state.get(key),oldCode);
+page=createPage({validCode:oldCode});await new Promise(resolve=>setImmediate(resolve));
+assert.equal(page.get('ownerCode').value,oldCode);
+await page.get('ownerClaim').onclick();
+assert.equal(state.has(key),false);
+state.clear();
+page=createPage();await new Promise(resolve=>setImmediate(resolve));
 await page.get('ownerSetup').onclick();
 const code=state.get(key);assert.match(code,/^[a-f0-9]{64}$/);
 page=createPage();await new Promise(resolve=>setImmediate(resolve));
