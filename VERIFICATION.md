@@ -1,3 +1,9 @@
+# Cloud Browser activation attempt — 2026-09-28
+
+**BLOCKED before login and billing inspection.** With explicit authorization to use Cloud Browser, opened `https://dash.cloudflare.com/`. Cloudflare displayed its “セキュリティ検証の実行” page (“しばらくお待ちください…”). After one allowed reload, the same verification page remained and the dashboard did not load. This was reported as a challenge loop. No account identity, Workers/R2 plan, billing state, or payment requirements could be observed. No CAPTCHA was solved and no credential was entered.
+
+Cloudflare R2 bucket/Worker/binding/secrets/upload/issuer invite/live endpoint: NOT CREATED / NOT VERIFIED. No public deployment. Existing private staging and checkpoint code are preserved. Public main remains `00b39fd5f7794fba44333cff1d183a6ecfa90931`; Phase 2 NOT PASS; Retrospective Trigger UNADOPTED. Next continuation requires a Cloudflare access path that can reach the authenticated dashboard; billing must be inspected before account mutations. Browser-specific limitation: https://help.openai.com/articles/20001280-using-cloud-browser-in-chatgpt#when-a-website-blocks-the-task
+
 # Cloudflare real-environment activation gate — 2026-09-28
 
 **Status: BLOCKED before account operations; no live endpoint verification.** The access-controlled Worker/client checkpoint remains on a separate branch. The private 263-person staged master and metadata-only manifest are present outside Git; `wrangler.example.jsonc` fixes the Pages origin and metadata hash while leaving the private bucket name unresolved. JSONC/template metadata parsing passed locally. No Cloudflare connector, authenticated Wrangler session, or API credential was available in the Work environment, so no bucket, Worker, binding, secret, invite, live request, or public deployment was performed. The exact remaining activation and live test sequence is in `CLOUDFLARE_ACTIVATION.md`.
