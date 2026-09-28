@@ -1,0 +1,18 @@
+// Copy to wrangler.jsonc only in an authenticated deployment workspace.
+// Replace the bucket name after a private R2 bucket has been created.
+// Never add CAPABILITY_SECRET or ADMIN_SECRET values here.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "blind-face-select-candidate-delivery",
+  "main": "candidate-distribution-worker.mjs",
+  "compatibility_date": "2026-09-28",
+  "workers_dev": true,
+  "r2_buckets": [
+    { "binding": "MASTER_BUCKET", "bucket_name": "REPLACE_WITH_PRIVATE_R2_BUCKET" }
+  ],
+  "vars": {
+    "APP_ORIGIN": "https://nyannko619xxx-oss.github.io",
+    "MANIFEST_JSON": "{\"schema_version\":1,\"master_version\":\"starto-junior-2026-09-28\",\"master_url\":\"/v1/master/starto-junior-2026-09-28\",\"sha256\":\"sha256-78d91f78d41db6699541146ac1dc7f89b8a9006f186d2033e678565ed3c1d45d\",\"editions\":[]}"
+  },
+  "secrets": { "required": ["CAPABILITY_SECRET", "ADMIN_SECRET"] }
+}
