@@ -29,7 +29,32 @@ try{
     if(screens===11){await page.reload();await page.locator('.mode-card[data-set="STARTO_SELECT"]').click();await page.locator('.owner-selection .game-face').first().waitFor();resumed=true}
   }
   assert.equal(await page.locator('.board-card').count(),9);assert(seen.has(5)&&seen.has(4)&&seen.has(3)&&resumed);assert.equal(candidateUpload,0);
-  await page.reload();await page.locator('.mode-card[data-set="STARTO_SELECT"]').click();await page.locator('.board.is-final .board-card.is-revealed').first().waitFor();assert.equal(await page.locator('.board-card.is-revealed').count(),9);
+  assert.equal(await page.locator('.board-card.is-revealed').count(),0);
+  assert((await page.locator('.board-caption').allTextContents()).every(x=>!x));
+  assert.equal(await page.locator('.board-card.is-next').getAttribute('data-rank'),'9');
+  for(const rank of [9,8])await page.locator(`.board-card[data-rank="${rank}"]`).click();
+  await page.locator('.board-card.is-next[data-rank="7"]').waitFor();
+  assert.equal(await page.locator('.board-card.is-revealed').count(),2);
+  await page.reload();await page.locator('.mode-card[data-set="STARTO_SELECT"]').click();
+  assert.equal(await page.locator('.board-card.is-revealed').count(),2);
+  assert.equal(await page.locator('.board-card.is-next').getAttribute('data-rank'),'7');
+  for(const rank of [7,6,5,4,3,2,1])await page.locator(`.board-card[data-rank="${rank}"]`).click();
+  await page.locator('.board.is-final .board-card.is-revealed').first().waitFor();assert.equal(await page.locator('.board-card.is-revealed').count(),9);
+  await page.reload();await page.locator('.mode-card[data-set="STARTO_SELECT"]').click();await page.locator('.board.is-final').waitFor();assert.equal(await page.locator('.board-card.is-revealed').count(),9);
+  await page.getByRole('button',{name:'もう一度Reveal'}).click();await page.locator('.board-card.is-next[data-rank="9"]').waitFor();assert.equal(await page.locator('.board-card.is-revealed').count(),0);
+  assert.equal(await page.locator('.board-card.is-next').getAttribute('data-rank'),'9');
+  for(let rank=9;rank>=1;rank--)await page.locator(`.board-card[data-rank="${rank}"]`).click();
+  await page.locator('.board.is-final').waitFor();
+  // A result saved by the prior auto-Reveal version has no revealCount.
+  await page.evaluate(async()=>{
+    const token='a'.repeat(64),hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token))),b=>b.toString(16).padStart(2,'0')).join('');
+    const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('bfs-owner-real-test-v01',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+    await new Promise((resolve,reject)=>{const tx=db.transaction('private','readwrite'),store=tx.objectStore('private'),key='owner-progress:'+hash,req=store.get(key);
+      req.onsuccess=()=>{const record=req.result;delete record.revealCount;store.put(record,key)};tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+    });db.close();
+  });
+  await page.reload();await page.locator('.mode-card[data-set="STARTO_SELECT"]').click();await page.locator('.board.is-final').waitFor();assert.equal(await page.locator('.board-card.is-revealed').count(),9);
+  await page.getByRole('button',{name:'もう一度Reveal'}).click();await page.locator('.board-card.is-next[data-rank="9"]').waitFor();
   await page.getByRole('button',{name:'ホームへ'}).click();
   for(const setId of ['JUNIOR_SELECT','ALL_SELECT']){
     await page.locator(`.mode-card[data-set="${setId}"]`).click();

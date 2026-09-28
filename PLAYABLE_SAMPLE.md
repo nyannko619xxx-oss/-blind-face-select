@@ -15,3 +15,7 @@ Invite is a separate Home destination. Returning Home does not reset a Selection
 Local synthetic validation exercises the 105 / 158 / 263 partitions and unchanged Engine. Clean-browser Test deployment verifies Home, STARTO complete TOP9, Junior/ALL starts and reload, Recipient fixture, Invite from Home, and no candidate payload upload. The actual Owner iPad has previously displayed STARTO official-origin images in the 5-face screen (human verified); end-to-end real play, Junior/ALL official image availability, physical resume/TOP9, duration and fatigue remain human QA.
 
 Image technical reachability does not verify image reuse permission. Phase 2 remains NOT PASS and Retrospective Trigger UNADOPTED.
+
+## Touch Reveal repair
+
+The Owner Result Board uses the same stored TOP9 ranking. New completions present nine veiled cards with visible rank positions. Only the next rank (9→1) accepts a tap. Reveal progress is saved separately from selection completion. Reopening a partially revealed result resumes at the next rank; opening an already completed result shows the full Board. Previously completed results without a reveal-progress field also open fully and offer “もう一度Reveal.” All three Owner sets share this Result component. No Selection or Invite API change.

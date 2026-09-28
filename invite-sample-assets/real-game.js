@@ -1,7 +1,7 @@
 // Owner-only technical test. No catalog or choices are sent to the Worker.
 import {createSelection,nextQuestion,submitChoice,selectionAudit} from './selection-engine.js';
 import {privateRecord,readOwnerFile,candidateSnapshot,SETS} from './owner-master.js';
-import {createRevealBoard} from './reveal-board.js';
+import {createRevealBoard} from './reveal-board.js?v=tap-reveal-01';
 const phases={preliminary:'最初の選考',main:'次の選考',late:'候補を絞る',recovery:'候補を補う',boundary:'最後の確認',rank:'順位を決める'};
 const node=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el};
 const digest=async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join('');
@@ -21,16 +21,19 @@ export async function mountOwnerRealGame(host,sessionToken,{setId='STARTO_SELECT
   const game=node('div','owner-selection'),phase=node('h3'),progress=node('p'),faces=node('div','game-faces'),hint=node('p'),uncertainLabel=node('label','uncertain'),uncertain=node('input'),next=node('button','', '次へ進む');
   uncertain.type='checkbox';uncertainLabel.append(uncertain,document.createTextNode('この比較は迷った'));
   game.append(phase,progress,faces,hint,uncertainLabel,next);
-  const result=node('div','owner-result'),summary=node('p'),ranking=node('div','ranking board'),actions=node('div','board-actions'),again=node('button','', '新しく選び直す'),replay=node('button','', 'もう一度Reveal');
-  actions.append(replay,again);result.append(node('h2','', 'あなたのTOP9'),summary,ranking,actions);
+  const result=node('div','owner-result'),summary=node('p'),revealHint=node('p','reveal-hint'),ranking=node('div','ranking board'),actions=node('div','board-actions'),again=node('button','', '新しく選び直す'),replay=node('button','', 'もう一度Reveal');
+  actions.append(replay,again);result.append(node('h2','', 'あなたのTOP9'),summary,revealHint,ranking,actions);
   const detail=node('dialog'),close=node('button','', '閉じる'),detailBody=node('div');detail.append(close,detailBody);close.onclick=()=>detail.close();
   host.append(heading,setup,intro,game,result,detail);
   let state=saved?.setVersion===set.version&&saved.engine?.version===3?saved.engine:null;
   let frozen=state&&saved.snapshot?.setVersion===set.version&&saved.snapshot.candidates?.length===set.count?saved.snapshot:null;
   if(state&&!frozen){state=null;saved=null}
   let startedAt=saved?.startedAt||null,completedAt=saved?.completedAt||null;
+  // Completed results from the prior auto-Reveal version remain immediately viewable.
+  let revealCount=Number.isInteger(saved?.revealCount)?saved.revealCount:(completedAt?9:0);
+  let revealWrite=Promise.resolve();
   const records=()=>new Map(frozen.candidates.map(c=>[c.candidate_id,c]));
-  const save=async()=>privateRecord('put',key,{setId,setVersion:set.version,startedAt,completedAt:state.phase==='complete'?completedAt:null,snapshot:frozen,engine:state});
+  const save=async()=>privateRecord('put',key,{setId,setVersion:set.version,startedAt,completedAt:state.phase==='complete'?completedAt:null,revealCount,snapshot:frozen,engine:state});
   const render=async()=>{
     if(board){board.stop();board=null}
     setup.hidden=!!master||!!state;intro.hidden=game.hidden=result.hidden=true;
@@ -39,13 +42,19 @@ export async function mountOwnerRealGame(host,sessionToken,{setId='STARTO_SELECT
     if(!q){
       result.hidden=false;const audit=selectionAudit(state);summary.textContent=`${audit.screens}回の比較で選びました。結果はこの端末に保存されています。`;
       const byId=records(),ordered=state.ranking.map(id=>{const c=byId.get(id);return {name:c.display_name,imageUrl:c.image_source_url,candidate:c}});
-      board=createRevealBoard(ranking,ordered,{onDetail:(rank,item)=>{
+      board=createRevealBoard(ranking,ordered,{onProgress:rank=>{
+        revealCount=10-rank;revealHint.textContent=rank===1?'TOP9をすべて公開しました。':`次は${rank-1}位をタッチして公開`;
+        revealWrite=revealWrite.then(save);
+        return revealWrite.catch(error=>{revealHint.textContent='結果を保存できませんでした。ページを再読み込みしてください。';throw error});
+      },onComplete:()=>{actions.hidden=false;revealHint.textContent='TOP9をすべて公開しました。'},onDetail:(rank,item)=>{
         const c=item.candidate;detailBody.replaceChildren(node('h3','',`${rank}位 ${c.display_name}`),node('p','',c.group||c.current_affiliation||'所属情報なし'));
         const img=node('img');img.src=c.image_source_url;img.alt='';img.className='detail-photo';detailBody.append(img);
         const link=node('a','', '公式プロフィール');link.href=c.official_profile_url;link.target='_blank';link.rel='noopener noreferrer';detailBody.append(link);detail.showModal();
       }});
-      if(completedAt)board.showAll();else board.play();
-      // Completion is committed before animation; a later visit opens the completed board.
+      actions.hidden=revealCount<9;
+      if(revealCount===9){board.showAll();revealHint.textContent='TOP9をすべて公開しました。'}
+      else{board.startManual(revealCount);revealHint.textContent=`${9-revealCount}位をタッチして公開`}
+      // The completed ranking is saved independently of the player's reveal progress.
       completedAt ||= new Date().toISOString();await save();return;
     }
     game.hidden=false;phase.textContent=phases[q.phase];progress.textContent=`${state.history.length+1}回目｜${q.ids.length}人から${q.max}人まで選択`;
@@ -64,8 +73,8 @@ export async function mountOwnerRealGame(host,sessionToken,{setId='STARTO_SELECT
     next.onclick=async()=>{if(picks.size<q.min||faces.querySelector('.game-face:disabled'))return;next.disabled=true;submitChoice(state,[...picks],{uncertain:uncertain.checked});await save();await render()};
   };
   input.onchange=async()=>{try{const candidate=await readOwnerFile(input.files?.[0]);await privateRecord('put',catalogKey,candidate);master=candidate;setupStatus.textContent='候補データをこの端末に保存しました。';await render()}catch(error){setupStatus.textContent=error.message}finally{input.value=''}};
-  start.onclick=async()=>{if(!master)return;frozen=candidateSnapshot(master,setId);state=createSelection(frozen.candidates.map(c=>c.candidate_id),{lateSize:3,recheckMode:'baseline'});startedAt=new Date().toISOString();completedAt=null;await save();await render()};
-  again.onclick=async()=>{if(!master){setup.hidden=false;return}frozen=candidateSnapshot(master,setId);state=createSelection(frozen.candidates.map(c=>c.candidate_id),{lateSize:3,recheckMode:'baseline'});startedAt=new Date().toISOString();completedAt=null;await save();await render()};
-  replay.onclick=()=>{if(board){board=createRevealBoard(ranking,state.ranking.map(id=>{const c=records().get(id);return {name:c.display_name,imageUrl:c.image_source_url,candidate:c}}),{onDetail:(rank,item)=>{const c=item.candidate;detailBody.replaceChildren(node('h3','',`${rank}位 ${c.display_name}`),node('p','',c.group||''));const link=node('a','', '公式プロフィール');link.href=c.official_profile_url;link.target='_blank';link.rel='noopener noreferrer';detailBody.append(link);detail.showModal()}});board.play()}};
+  start.onclick=async()=>{if(!master)return;frozen=candidateSnapshot(master,setId);state=createSelection(frozen.candidates.map(c=>c.candidate_id),{lateSize:3,recheckMode:'baseline'});startedAt=new Date().toISOString();completedAt=null;revealCount=0;await save();await render()};
+  again.onclick=async()=>{if(!master){setup.hidden=false;return}frozen=candidateSnapshot(master,setId);state=createSelection(frozen.candidates.map(c=>c.candidate_id),{lateSize:3,recheckMode:'baseline'});startedAt=new Date().toISOString();completedAt=null;revealCount=0;await save();await render()};
+  replay.onclick=async()=>{revealCount=0;await save();await render()};
   await render();
 }

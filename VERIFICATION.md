@@ -466,3 +466,12 @@ Human QA evidence from Owner iPad Safari: STARTO official-origin images displaye
 [Actions run 36450615651](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36450615651) SUCCESS. Exact Test assets and existing Worker/Secret/D1 binding verified. Recipient fixture E2E: Home → fictional 55-person TOP9 (42 screens) → Home → Invite → one Claim → recipient TOP9 (42 screens); original daily rule unchanged. Clean-browser synthetic Owner E2E: Home → STARTO 105 → TOP9 (53 screens, 5/4/3 display) → reload saved Board; Junior 158 and ALL 263 independently started and resumed; no candidate-data upload. Real-person identity mapping and image binaries were absent from CI/Worker/D1/Public Git. Automated browser uses fictional image URLs and cannot prove physical Safari image behavior for Junior/ALL.
 
 Public main remains `00b39fd5f7794fba44333cff1d183a6ecfa90931`. Human Owner iPad play through actual STARTO TOP9 is pending. Phase 2 NOT PASS; Retrospective Trigger UNADOPTED; image rights UNVERIFIED.
+
+
+### Touch Reveal regression repair｜2026-09-29
+
+HUMAN PLAY: Owner iPad Safari completed STARTO 105 and Junior 158 with real official-origin images, approximately 15 minutes per set. ALL 263 full human play remains unverified. This is usability evidence, not Phase 2 selection-quality PASS or image-rights approval.
+
+REGRESSION: The isolated Owner Result Board automatically revealed 9→1 on a new result and immediately showed all cards for a stored result. Earlier touch-to-unveil interaction was absent. The Test-only board now begins with nine masked rank positions. Player taps rank 9, then 8, …, then 1; only the next rank is enabled. Each tap persists progress before enabling the next rank. On interruption, masked/revealed state resumes. Completed results open immediately, with a small “もう一度Reveal” action. Prior completed records lacking revealCount remain immediately viewable and can replay interactively. Names/images are inserted in the DOM only on reveal; the underlying ranking remains unchanged.
+
+LOCAL VERIFIED: selection, Invite and Owner persistence regressions pass; Test browser deployment and Safari retest follow separately. Public main/Pages and Production Selection Engine unchanged. Phase 2 NOT PASS; Retrospective Trigger UNADOPTED; image rights UNVERIFIED.
