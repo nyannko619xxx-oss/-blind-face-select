@@ -1,6 +1,8 @@
 // Presentation only. Ranking is already decided by the player's choices.
 export const BOARD_POSITIONS=[9,8,7,3,1,2,6,5,4];
 const safeImage=value=>{try{return new URL(value).protocol==='https:'}catch{return false}};
+const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const closingBeat={3:{before:110,after:250},2:{before:190,after:340},1:{before:350,after:570}};
 export function createRevealBoard(host,ordered,{onDetail=()=>{},onProgress=()=>{},onComplete=()=>{}}={}){
   if(!Array.isArray(ordered)||ordered.length!==9)throw Error('TOP9が必要です');
   host.replaceChildren();host.classList.remove('is-final');
@@ -17,8 +19,13 @@ export function createRevealBoard(host,ordered,{onDetail=()=>{},onProgress=()=>{
       if(stopped)return;
       if(button.classList.contains('is-revealed')){onDetail(rank,ordered[rank-1]);return}
       if(rank!==next)return;
-      next=0;unveil(rank);button.disabled=true;
+      next=0;button.disabled=true;
+      const beat=window.matchMedia('(prefers-reduced-motion: reduce)').matches?null:closingBeat[rank];
+      if(beat)await pause(beat.before);
+      if(stopped)return;
+      unveil(rank);button.disabled=true;
       try{await onProgress(rank,ordered[rank-1])}catch{host.dataset.saveError='true';return}
+      if(beat)await pause(beat.after);
       if(stopped)return;
       button.disabled=false;
       if(rank===1)complete();else arm(rank-1);
