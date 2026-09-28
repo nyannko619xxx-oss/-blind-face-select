@@ -459,3 +459,10 @@ IMPLEMENTED and AUTOMATED VERIFIED for Test route and fixture/synthetic browser 
 IMPLEMENTED on isolated Test branch: authenticated Home, Owner STARTO 105 / Junior 158 / ALL 263 mode cards, natural Resume / saved Result entry, Owner setup hidden during valid session, Invite as separate Home route, explicit image-error stop and reload. The existing STARTO key and frozen session remain compatible; Selection Engine/Invite backend unchanged. See `PLAYABLE_SAMPLE.md`.
 
 Human QA evidence from Owner iPad Safari: STARTO official-origin images displayed in the five-face Selection screen, with uncertainty and choice controls visible. This updates *technical image display for the shown STARTO screen* to HUMAN VERIFIED. Full STARTO play, Junior/ALL images, Safari resume and TOP9 remain UNVERIFIED; image rights remain UNVERIFIED. Automated Test deployment result follows separately.
+
+
+#### Isolated Test Deploy / browser result
+
+[Actions run 36450615651](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36450615651) SUCCESS. Exact Test assets and existing Worker/Secret/D1 binding verified. Recipient fixture E2E: Home → fictional 55-person TOP9 (42 screens) → Home → Invite → one Claim → recipient TOP9 (42 screens); original daily rule unchanged. Clean-browser synthetic Owner E2E: Home → STARTO 105 → TOP9 (53 screens, 5/4/3 display) → reload saved Board; Junior 158 and ALL 263 independently started and resumed; no candidate-data upload. Real-person identity mapping and image binaries were absent from CI/Worker/D1/Public Git. Automated browser uses fictional image URLs and cannot prove physical Safari image behavior for Junior/ALL.
+
+Public main remains `00b39fd5f7794fba44333cff1d183a6ecfa90931`. Human Owner iPad play through actual STARTO TOP9 is pending. Phase 2 NOT PASS; Retrospective Trigger UNADOPTED; image rights UNVERIFIED.
