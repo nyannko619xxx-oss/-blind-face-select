@@ -50,7 +50,9 @@ jobs:
           })().catch(e=>{console.error(String(e.message).replace(/[^a-z0-9_]/gi,'_'));process.exitCode=1});
           NODE
       - name: Install pinned Wrangler
-        run: npm install --no-save --ignore-scripts wrangler@4.45.0
+        run: npm install --no-save --ignore-scripts wrangler@4.45.0 playwright@1.55.0
+      - name: Install headless browser for clean-client E2E
+        run: npx playwright install chromium
       - name: Deploy fixture UI preserving existing Worker Secret
         run: npx wrangler deploy --config=.owner-repair.wrangler.json
       - name: Verify live route, Secret binding and Invite regression
@@ -118,6 +120,8 @@ jobs:
             console.log('live_v02_assets_owner_secret_and_invite_regression_pass');
           })().catch(e=>{console.error(String(e.message).replace(/[^a-z0-9_]/gi,'_'));process.exitCode=1});
           NODE
+      - name: Clean-browser invite and fixture TOP9 E2E
+        run: node verify-invite-sample-v02-browser.mjs
       - name: Erase temporary config
         if: always()
         run: rm -f .owner-repair.wrangler.json
