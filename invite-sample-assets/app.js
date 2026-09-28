@@ -11,13 +11,21 @@ function showAccess(message){$('access').hidden=false;$('play').hidden=$('invite
 async function showSession(){
   try{
     const [me,fixture]=await Promise.all([api('/v1/sample/session'),api('/v1/sample/fixture')]);
-    $('access').hidden=$('ownerPanel').hidden=true;$('play').hidden=$('invitePanel').hidden=false;
+    $('access').hidden=$('ownerPanel').hidden=$('retrySession').hidden=true;$('play').hidden=$('invitePanel').hidden=false;
     $('quota').textContent=`JST ${me.jstDay}：${me.inviteAvailable?'本日の招待枠あり':'本日の招待枠を使用済み'}。Session期限 ${new Date(me.expiresAt).toLocaleString('ja-JP')}`;
     $('makeInvite').disabled=!me.inviteAvailable;
     $('cards').replaceChildren();const selected=new Set();
     for(const label of fixture.cards){const card=document.createElement('button');card.type='button';card.className='card';card.textContent=label;card.setAttribute('aria-pressed','false');card.onclick=()=>{if(selected.has(label))selected.delete(label);else if(selected.size<2)selected.add(label);for(const b of $('cards').children)b.setAttribute('aria-pressed',String(selected.has(b.textContent)));$('choice').textContent=`${selected.size}人選択中`};$('cards').append(card)}
     status('匿名Sessionでfixtureを取得できました。');
-  }catch(error){sessionToken=null;localStorage.removeItem(KEY);showAccess(error.code===401?'Sessionが無効または期限切れです。':'接続できませんでした。')}
+    return true;
+  }catch(error){
+    if(error.code===401){sessionToken=null;localStorage.removeItem(KEY);showAccess('Sessionが無効または期限切れです。');return false}
+    // A one-time Owner Claim may have succeeded even if the next fetch fails.
+    // Keep its token, so reload can resume without consuming the Owner slot again.
+    $('retrySession').hidden=false;
+    status('Sessionは保存済みです。通信に失敗しました。再読み込みで続行してください。');
+    return false;
+  }
 }
 async function start(){
   const fragment=location.hash;history.replaceState(null,'',location.pathname+location.search);
@@ -34,18 +42,25 @@ $('claimInvite').onclick=async()=>{
 $('ownerSetup').onclick=()=>{
   let code=sessionStorage.getItem(OWNER_KEY);
   if(!code){code=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');sessionStorage.setItem(OWNER_KEY,code)}
-  $('ownerCode').value=code;$('ownerPanel').hidden=false;status('このコードを専用Test Worker Secretへ登録してください。');
+  $('ownerCode').value=code;$('ownerPanel').hidden=false;$('ownerMessage').textContent='';status('このコードを専用Test Worker Secretへ登録してください。');
 };
 $('copyOwnerCode').onclick=async()=>{
   try{await navigator.clipboard.writeText($('ownerCode').value);status('Ownerコードをコピーしました。CloudflareのSecret欄だけへ貼ってください。')}
   catch{$('ownerCode').select();status('コピーできませんでした。選択されたコードをコピーしてください。')}
 };
 $('ownerClaim').onclick=async()=>{
-  $('ownerClaim').disabled=true;
-  try{const data=await api('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:sessionStorage.getItem(OWNER_KEY)},authorized:false});sessionToken=data.sessionToken;localStorage.setItem(KEY,sessionToken);sessionStorage.removeItem(OWNER_KEY);$('ownerCode').value='';await showSession()}
-  catch(error){status(error.code===503?'CloudflareのSecret登録・反映を確認してください。':error.code===410?'初回Owner枠は使用済みです。':error.code===403?'登録したコードが一致しません。':'Owner開始に失敗しました。')}
-  finally{$('ownerClaim').disabled=false}
+  $('ownerClaim').disabled=true;$('ownerMessage').textContent='Owner Sessionを確認中…';
+  try{
+    const data=await api('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:sessionStorage.getItem(OWNER_KEY)},authorized:false});
+    sessionToken=data.sessionToken;localStorage.setItem(KEY,sessionToken);sessionStorage.removeItem(OWNER_KEY);$('ownerCode').value='';
+    $('ownerClaim').hidden=true;$('ownerMessage').textContent='Owner Sessionを保存しました。';
+    await showSession();
+  }catch(error){
+    const message=error.code===503?'CloudflareのSecret登録・反映を確認してください。':error.code===410?'初回Owner枠は使用済みです。':error.code===403?'現在この画面に表示されたコードとCloudflareへ登録したコードが一致しません。':error.code===400?'Ownerコードが正しい形式ではありません。':'通信に失敗しました。時間をおいてもう一度押してください。';
+    $('ownerMessage').textContent=message;status(message);
+  }finally{$('ownerClaim').disabled=false}
 };
+$('retrySession').onclick=()=>showSession();
 $('makeInvite').onclick=async()=>{
   $('makeInvite').disabled=true;
   try{const grant=await api('/v1/sample/invites',{method:'POST'});const url=new URL('index.html',location.href);url.hash='invite='+grant.inviteToken;invitationUrl=url.href;$('inviteLink').value=invitationUrl;$('shareArea').hidden=false;$('quota').textContent=`JST ${grant.jstDay}の枠を使用済み。招待期限 ${new Date(grant.expiresAt).toLocaleString('ja-JP')}`;status('招待URLを発行しました。')}
