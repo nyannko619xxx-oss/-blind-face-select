@@ -127,7 +127,7 @@ jobs:
           NODE
       - name: Clean-browser Home, invite and fixture TOP9 E2E
         run: node verify-invite-sample-v02-browser.mjs
-      - name: Clean-browser Owner tap Reveal and three set routes E2E
+      - name: Clean-browser Owner tap Reveal saved progress and three set routes E2E
         run: node verify-owner-real-browser.mjs
       - name: Erase temporary config
         if: always()
