@@ -39,6 +39,13 @@ jobs:
             if(exact.length!==1)throw Error('dedicated_d1_not_unique');
             const databaseId=exact[0].uuid;
             if(!/^[a-f0-9-]{36}$/i.test(databaseId))throw Error('d1_id_invalid');
+            const secrets=await api('/accounts/'+accountId+'/workers/scripts/blind-face-select-invite-test-v01/secrets');
+            if(!Array.isArray(secrets)||secrets.some(x=>x.name==='OWNER_BOOTSTRAP_CODE'))throw Error('owner_code_already_configured');
+            const marker=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('blind-face-select:owner-bootstrap:v0.1'));
+            const markerHex=Array.from(new Uint8Array(marker),b=>b.toString(16).padStart(2,'0')).join('');
+            const q=await fetch('https://api.cloudflare.com/client/v4/accounts/'+accountId+'/d1/database/'+databaseId+'/query',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({sql:'SELECT count(*) AS n FROM anonymous_sessions WHERE claimed_invite_hash = ?',params:[markerHex]})});
+            if(!q.ok)throw Error('owner_slot_probe_http_'+q.status);
+            const state=await q.json();if(!state.success||state.result?.[0]?.results?.[0]?.n!==0)throw Error('owner_slot_not_available');
             const domain=await api('/accounts/'+accountId+'/workers/subdomain');
             if(!/^[a-z0-9-]+$/.test(domain.subdomain))throw Error('workers_subdomain_unavailable');
             const origin='https://blind-face-select-invite-test-v01.'+domain.subdomain+'.workers.dev';
@@ -67,8 +74,10 @@ jobs:
         shell: bash
         run: |
           node -e "require('node:fs').writeFileSync('.invite-test-admin',require('node:crypto').randomBytes(32).toString('hex'))"
-          chmod 600 .invite-test-admin
+          node -e "require('node:fs').writeFileSync('.invite-test-owner',require('node:crypto').randomBytes(32).toString('hex'))"
+          chmod 600 .invite-test-admin .invite-test-owner
           npx wrangler secret put ADMIN_SECRET --config=.invite-test.wrangler.json < .invite-test-admin
+          npx wrangler secret put OWNER_BOOTSTRAP_CODE --config=.invite-test.wrangler.json < .invite-test-owner
       - name: Verify real D1 endpoint and isolated invite chain
         shell: bash
         run: |
@@ -116,9 +125,37 @@ jobs:
             if(!expiry.jstDay)throw Error('daily_limit_day_missing');
             await dbChange('UPDATE anonymous_sessions SET expires_at = 0 WHERE token_hash = ?',crypto.createHash('sha256').update(recipient).digest('hex'));
             expect(await request('/v1/sample/session',{token:recipient}),401,'expired_session');
-            console.log('live_asset_auth_origin_invite_claim_20way_race_reinvite_expiry_tamper_pass');
+            const humanCode=fs.readFileSync('.invite-test-owner','utf8');
+            expect(await request('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:'0'.repeat(64)}}),403,'wrong_owner_code');
+            const ownerClaims=await Promise.all(Array.from({length:20},()=>request('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:humanCode}})));
+            const humanWinners=ownerClaims.filter(r=>r.status===201),humanLosers=ownerClaims.filter(r=>r.status===410);
+            try{
+              if(humanWinners.length!==1||humanLosers.length!==19)throw Error('owner_claim_race_'+humanWinners.length+'_'+humanLosers.length);
+              expect(await request('/v1/sample/fixture',{token:humanWinners[0].value.sessionToken}),200,'human_owner_fixture');
+              expect(await request('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:humanCode}}),410,'owner_once');
+            }finally{
+              await dbChange('DELETE FROM anonymous_sessions WHERE claimed_invite_hash = ?',crypto.createHash('sha256').update('blind-face-select:owner-bootstrap:v0.1').digest('hex'));
+            }
+            console.log('live_asset_auth_invite_20way_owner_20way_expiry_tamper_pass');
           })().catch(e=>{console.error(String(e.message).replace(/[^a-z0-9_]/gi,'_'));process.exitCode=1});
+          NODE
+      - name: Remove test-only bootstrap secrets
+        if: always()
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs');
+          if(!fs.existsSync('.invite-test.wrangler.json'))process.exit(0);
+          const cfg=JSON.parse(fs.readFileSync('.invite-test.wrangler.json','utf8'));
+          (async()=>{
+            for(const name of ['OWNER_BOOTSTRAP_CODE','ADMIN_SECRET']){
+              const url='https://api.cloudflare.com/client/v4/accounts/'+cfg.account_id+'/workers/scripts/'+cfg.name+'/secrets/'+name;
+              const r=await fetch(url,{method:'DELETE',headers:{Authorization:'Bearer '+process.env.CLOUDFLARE_API_TOKEN}});
+              if(r.status!==404&&(!r.ok||(await r.json()).success!==true))throw Error('secret_cleanup_'+name+'_'+r.status);
+            }
+            console.log('test_bootstrap_secrets_removed');
+          })().catch(e=>{console.error(e.message);process.exitCode=1});
           NODE
       - name: Erase ephemeral bootstrap material
         if: always()
-        run: rm -f .invite-test-admin .invite-test.wrangler.json
+        run: rm -f .invite-test-admin .invite-test-owner .invite-test.wrangler.json
