@@ -1,0 +1,21 @@
+name: Test-only Owner invite quota reset
+on:
+  push:
+    branches: [checkpoint/anonymous-invite-sample-v0.1]
+    paths: [.github/workflows/reset-test-owner-quota.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      RESET_TEST_OWNER_QUOTA: ${{ github.run_attempt > 1 || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact-row reset behavior
+        run: node verify-invite-reset.mjs
+      - name: Inspect on initial push; reset only on explicit rerun or dispatch
+        run: node invite-test-reset.mjs
