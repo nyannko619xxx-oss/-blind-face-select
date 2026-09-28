@@ -13,6 +13,15 @@ const before=Date.parse('2026-09-28T14:59:00Z'); // 23:59 JST
 assert.equal(jstDay(before),'2026-09-28');assert.equal(jstDay(before+60000),'2026-09-29');
 assert.equal((await call('/v1/sample/fixture',{time:before})).status,401);
 assert.equal((await call('/v1/sample/admin/bootstrap',{method:'POST',time:before})).status,401);
+assert.equal((await call('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:'0'.repeat(64)},time:before})).status,403);
+const ownerClaims=await Promise.all(Array.from({length:20},()=>call('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:env.OWNER_BOOTSTRAP_CODE},time:before})));
+assert.equal(ownerClaims.filter(x=>x.status===201).length,1);
+assert.equal(ownerClaims.filter(x=>x.status===410).length,19);
+const humanOwnerToken=ownerClaims.find(x=>x.status===201).data.sessionToken;
+assert.equal((await call('/v1/sample/fixture',{token:humanOwnerToken,time:before})).status,200);
+const ownerCode=env.OWNER_BOOTSTRAP_CODE;delete env.OWNER_BOOTSTRAP_CODE;
+assert.equal((await call('/v1/sample/owner/claim',{method:'POST',body:{ownerCode},time:before})).status,503);
+env.OWNER_BOOTSTRAP_CODE=ownerCode;
 const owner=(await call('/v1/sample/admin/bootstrap',{method:'POST',token:env.ADMIN_SECRET,time:before}));
 assert.equal(owner.status,201);const ownerToken=owner.data.sessionToken;
 assert.equal((await call('/v1/sample/fixture',{token:ownerToken,time:before})).data.cards.length,5);
