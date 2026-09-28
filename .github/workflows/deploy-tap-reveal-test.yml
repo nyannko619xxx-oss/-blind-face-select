@@ -83,9 +83,9 @@ jobs:
               await new Promise(resolve=>setTimeout(resolve,5000));
               const html=await fetch(origin+'/?v=sample-v02-1',{cache:'no-store'});
               const page=await html.text();
-              const js=await fetch(origin+'/app.js?v=tap-reveal-01',{cache:'no-store'});
+              const js=await fetch(origin+'/app.js?v=reveal-finish-01',{cache:'no-store'});
               const source=fs.readFileSync('invite-sample-assets/app.js','utf8');
-              assetsReady=html.status===200&&page.includes('id="play"')&&page.includes('id="restoreOwner"')&&page.includes('id="ownerMessage"')&&page.includes('tap-reveal-01')&&page.includes('id="home"')&&page.includes('[hidden]{display:none!important}')&&page.includes('app.js?v=tap-reveal-01')&&js.status===200&&(await js.text())===source;
+              assetsReady=html.status===200&&page.includes('id="play"')&&page.includes('id="restoreOwner"')&&page.includes('id="ownerMessage"')&&page.includes('reveal-finish-01')&&page.includes('id="home"')&&page.includes('[hidden]{display:none!important}')&&page.includes('app.js?v=reveal-finish-01')&&js.status===200&&(await js.text())===source;
               if(assetsReady)break;
             }
             if(!assetsReady)throw Error('v02_assets_not_propagated');
@@ -127,7 +127,7 @@ jobs:
           NODE
       - name: Clean-browser Home, invite and fixture TOP9 E2E
         run: node verify-invite-sample-v02-browser.mjs
-      - name: Clean-browser Owner tap Reveal saved progress and three set routes E2E
+      - name: Clean-browser Owner tap Reveal and three set routes E2E
         run: node verify-owner-real-browser.mjs
       - name: Erase temporary config
         if: always()
