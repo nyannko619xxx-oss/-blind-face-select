@@ -125,7 +125,7 @@ jobs:
             console.log('live_playable_home_assets_and_invite_regression_pass');
           })().catch(e=>{console.error(String(e.message).replace(/[^a-z0-9_]/gi,'_'));process.exitCode=1});
           NODE
-      - name: Clean-browser invite, asynchronous share and fixture TOP9 E2E
+      - name: Clean-browser Home, invite and fixture TOP9 E2E
         run: node verify-invite-sample-v02-browser.mjs
       - name: Clean-browser Owner home and three set routes E2E
         run: node verify-owner-real-browser.mjs
