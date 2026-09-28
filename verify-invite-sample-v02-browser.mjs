@@ -24,7 +24,7 @@ const play=async page=>{
     const progress=await page.locator('#gameProgress').innerText();
     await cards.first().click();if(progress.includes('2人まで')&&n>=2)await cards.nth(1).click();
     await page.getByRole('button',{name:'次へ進む'}).click();
-    if(i===10){await page.reload();await page.locator('.game-face').first().waitFor();reloaded=true}
+    if(i===10){await page.reload();await page.getByRole('button',{name:'顔だけで選ぶ｜体験版'}).click();await page.locator('.game-face').first().waitFor();reloaded=true}
   }
   throw Error('top9_not_reached');
 };
@@ -32,7 +32,10 @@ try{
   await query('INSERT INTO anonymous_sessions (session_id, token_hash, claimed_invite_hash, created_at, expires_at) VALUES (?, ?, NULL, ?, ?)',[id,hash(token),now,now+3600000]);
   browser=await chromium.launch({headless:true});
   const sender=await browser.newContext(),page=await sender.newPage();
+  page.on('pageerror',error=>console.log('sender_page_error',error.message));
   await page.goto(origin+'/#session='+token);
+  await page.waitForTimeout(1000);
+  console.log('sender_home_state',JSON.stringify({status:await page.locator('#status').innerText(),home:await page.locator('#home').isVisible(),modes:await page.locator('.mode-card').allTextContents()}));
   await page.getByRole('button',{name:'顔だけで選ぶ｜体験版'}).click();
   await page.getByRole('heading',{name:'顔だけで選んでみる'}).waitFor();
   const first=await play(page);assert(first.saw5&&first.saw4&&first.saw3&&first.reloaded);
