@@ -2,6 +2,15 @@
 export const MANIFEST_URL='./candidate-distribution.json';
 const DB_NAME='blind-face-select-assets',STORE='catalogs';
 export const SET_IDS=['STARTO_SELECT','JUNIOR_SELECT','ALL_SELECT'];
+export async function distributionEndpoint({fetchApi=globalThis.fetch,pageUrl=globalThis.location.href,configUrl=MANIFEST_URL}={}){
+  const response=await fetchApi(new URL(configUrl,pageUrl),{cache:'no-store',referrerPolicy:'no-referrer'});
+  if(!response.ok)throw Error('候補データの配布先を確認できませんでした');
+  const config=await response.json();
+  if(config?.schema_version!==2||typeof config.endpoint_url!=='string')throw Error('候補データの配布先が未設定です');
+  const endpoint=new URL(config.endpoint_url);
+  if(endpoint.protocol!=='https:'||endpoint.username||endpoint.password||endpoint.search||endpoint.hash||endpoint.pathname!=='/')throw Error('候補データの配布先が不正です');
+  return endpoint.origin;
+}
 export function validateMaster(data){
   if(data?.schema_version!==3||typeof data.master_version!=='string'||!Array.isArray(data.candidate_master))throw Error('候補データの形式が正しくありません');
   const entries=data.candidate_master,ids=new Set(),identities=new Set();
@@ -52,10 +61,11 @@ export async function catalogRecord(method,key,value,indexedDBApi=globalThis.ind
     tx.onabort=()=>{db.close();reject(tx.error||Error('候補データを保存できません'))};
   });
 }
-export async function provision({fetchApi=globalThis.fetch,origin=globalThis.location.href,storage=catalogRecord,cryptoApi=globalThis.crypto,manifestUrl=MANIFEST_URL,requestedVersion}={}){
-  const response=await fetchApi(new URL(manifestUrl,origin),{cache:'no-store'});
+export async function provision({fetchApi=globalThis.fetch,origin=globalThis.location.href,storage=catalogRecord,cryptoApi=globalThis.crypto,endpoint,authorization,requestedVersion}={}){
+  const delivery=endpoint||await distributionEndpoint({fetchApi,pageUrl:origin});
+  const response=await fetchApi(new URL('/v1/manifest',delivery),{cache:'no-store',referrerPolicy:'no-referrer'});
   if(!response.ok)throw Error('候補データの配布情報を取得できませんでした');
-  const manifest=await response.json(),{url:masterUrl,edition}=validateManifest(manifest,origin,requestedVersion);
+  const manifest=await response.json(),{url:masterUrl,edition}=validateManifest(manifest,delivery,requestedVersion);
   const active=await storage('get','active');
   // Existing imported masters without a verified digest must pass through the remote check.
   if(active?.master_version===edition.master_version&&active.__distribution_sha256===edition.sha256){
@@ -68,8 +78,9 @@ export async function provision({fetchApi=globalThis.fetch,origin=globalThis.loc
     await storage('put','active',saved);
     return {master:saved,status:'restored'};
   }
-  const remote=await fetchApi(masterUrl,{cache:'no-store'});
-  if(!remote.ok)throw Error('候補データを取得できませんでした');
+  if(!authorization)throw Error('候補データの受取権限がありません。招待または共有リンクを開いてください');
+  const remote=await fetchApi(masterUrl,{cache:'no-store',headers:{Authorization:'Bearer '+authorization},referrerPolicy:'no-referrer'});
+  if(!remote.ok)throw Error(remote.status===401?'候補データの受取期限が終了しました':'候補データを取得できませんでした');
   const bytes=await remote.arrayBuffer();
   if(await digest(bytes,cryptoApi)!==edition.sha256)throw Error('候補データの整合性を確認できませんでした');
   const master=validateMaster(JSON.parse(new TextDecoder().decode(bytes)));
@@ -79,4 +90,19 @@ export async function provision({fetchApi=globalThis.fetch,origin=globalThis.loc
   await storage('put','version:'+master.master_version,verified);
   await storage('put','active',verified);
   return {master:verified,status:'downloaded'};
+}
+export async function issueReadCapability({fetchApi=globalThis.fetch,endpoint,issuer,version,expiresAt}){
+  if(!endpoint||!issuer)throw Error('この端末に共有用権限がありません');
+  const response=await fetchApi(new URL('/v1/grants',endpoint),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:'Bearer '+issuer},body:JSON.stringify({version,expiresAt}),referrerPolicy:'no-referrer'});
+  if(!response.ok)throw Error('共有用の受取権限を発行できませんでした。期限と招待権限を確認してください');
+  const result=await response.json();
+  if(typeof result.capability!=='string'||!result.capability)throw Error('共有用の受取権限が不正です');
+  return result.capability;
+}
+export async function inspectCapability({fetchApi=globalThis.fetch,endpoint,capability}){
+  if(!endpoint||!capability)return null;
+  const response=await fetchApi(new URL('/v1/capability',endpoint),{cache:'no-store',headers:{Authorization:'Bearer '+capability},referrerPolicy:'no-referrer'});
+  if(!response.ok)return null;
+  const result=await response.json();
+  return ['read','issuer'].includes(result.scope)&&Number.isSafeInteger(result.expiresAt)&&result.expiresAt>Date.now()?result:null;
 }

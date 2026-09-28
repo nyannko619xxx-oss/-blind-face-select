@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {provision,digest,validateMaster,validateManifest} from './candidate-provision.js';
+import {provision,digest,validateMaster,validateManifest,distributionEndpoint} from './candidate-provision.js';
 const base='https://example.test/-blind-face-select/app.html';
 const candidates=Array.from({length:18},(_,i)=>({
   candidate_id:'person-'+i,identity_id:'person-'+i,display_name:'Test '+i,
@@ -20,18 +20,21 @@ const records=new Map(),storage=async(method,key,value)=>method==='get'?records.
 let remoteMaster=master('v1'),remoteBytes=new TextEncoder().encode(JSON.stringify(remoteMaster)),count={manifest:0,master:0};
 let pinnedSha=null;
 let oldEdition=null;
-async function manifest(){return {schema_version:1,master_version:remoteMaster.master_version,master_url:'./master.json',sha256:pinnedSha||await digest(remoteBytes,webcrypto),editions:oldEdition?[oldEdition]:[]}}
-const fetchApi=async url=>{
-  if(String(url).endsWith('candidate-distribution.json')){count.manifest++;return {ok:true,json:manifest}}
-  count.master++;return {ok:true,arrayBuffer:async()=>remoteBytes.buffer.slice(remoteBytes.byteOffset,remoteBytes.byteOffset+remoteBytes.byteLength)}
+async function manifest(){return {schema_version:1,master_version:remoteMaster.master_version,master_url:'/v1/master/'+remoteMaster.master_version,sha256:pinnedSha||await digest(remoteBytes,webcrypto),editions:oldEdition?[oldEdition]:[]}}
+const fetchApi=async (url,options={})=>{
+  if(String(url).endsWith('candidate-distribution.json'))return {ok:true,json:async()=>({schema_version:2,endpoint_url:'https://private.test/'})};
+  if(String(url).endsWith('/v1/manifest')){count.manifest++;return {ok:true,json:manifest}}
+  assert.equal(options.headers.Authorization,'Bearer test-capability');
+  count.master++;return {ok:true,arrayBuffer:async()=>remoteBytes.buffer.slice(remoteBytes.byteOffset,remoteBytes.byteOffset+remoteBytes.byteLength)};
 };
-const run=(requestedVersion)=>provision({fetchApi,origin:base,storage,cryptoApi:webcrypto,requestedVersion});
+const run=(requestedVersion)=>provision({fetchApi,origin:base,storage,cryptoApi:webcrypto,requestedVersion,authorization:'test-capability'});
+assert.equal(await distributionEndpoint({fetchApi,pageUrl:base}),'https://private.test');
 assert.equal((await run()).status,'downloaded');
 assert.deepEqual(count,{manifest:1,master:1});
 assert.equal((await run()).status,'cached');
 assert.deepEqual(count,{manifest:2,master:1});
 const oldSnapshot=structuredClone(records.get('active').candidate_master[0]);
-oldEdition={master_version:'v1',master_url:'./master-v1.json',sha256:await digest(remoteBytes,webcrypto)};
+oldEdition={master_version:'v1',master_url:'/v1/master/v1',sha256:await digest(remoteBytes,webcrypto)};
 remoteMaster=master('v2');remoteBytes=new TextEncoder().encode(JSON.stringify(remoteMaster));
 assert.equal((await run()).status,'downloaded');
 assert.equal(records.get('version:v1').master_version,'v1');
@@ -48,12 +51,11 @@ remoteBytes=new TextEncoder().encode(JSON.stringify({...remoteMaster,master_vers
 records.clear();
 await assert.rejects(run(),/整合性/);
 assert.equal(records.has('active'),false);
-assert.throws(()=>validateManifest({schema_version:1,master_version:'v1',master_url:'https://other.test/data.json',sha256:'sha256-'+'0'.repeat(64)},base),/配布元/);
+assert.throws(()=>validateManifest({schema_version:1,master_version:'v1',master_url:'https://other.test/data.json',sha256:'sha256-'+'0'.repeat(64)},'https://private.test'),/配布元/);
 assert.throws(()=>validateMaster({...master('x'),candidate_sets:{...master('x').candidate_sets,ALL_SELECT:{version:'x',ids:candidates.slice(1).map(c=>c.candidate_id)}}}),/分類/);
 const html=readFileSync(new URL('./app.html',import.meta.url),'utf8'),app=readFileSync(new URL('./app.js',import.meta.url),'utf8');
 assert(!html.includes('value="demo"'));
 assert(html.includes('id="retryCatalog"'));
-assert(app.includes("'app.html?set='+encodeURIComponent(data.setId)"));
-assert(app.includes("'&version='+encodeURIComponent(data.version)"));
+assert(app.includes('newPlayerUrl(data,location.href)'));
 assert(!app.includes("createSelection(Array.from({length:140}"));
 console.log('Candidate provisioning PASS: clean, cache, version, integrity, Set routing and failure UI structure');

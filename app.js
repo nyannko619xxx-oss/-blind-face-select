@@ -1,6 +1,7 @@
 import {createSelection,nextQuestion,submitChoice,selectionAudit} from './selection-engine.js?v=2';
 import {createRevealBoard} from './reveal-board.js?v=1';
-import {provision,catalogRecord,validateMaster,SET_IDS} from './candidate-provision.js?v=1';
+import {provision,catalogRecord,validateMaster,distributionEndpoint,issueReadCapability,inspectCapability,SET_IDS} from './candidate-provision.js?v=2';
+import {newPlayerUrl} from './share-play.js?v=1';
 const $=id=>document.getElementById(id),KEY='blind-face-select-v2';
 const phases={preliminary:'PRELIMINARY',main:'MAIN ROUND',late:'LATE ROUND',recovery:'BORDERLINE RECHECK',boundary:'TOP9 BORDERLINE',rank:'DIRECT COMPARISON'};
 let db=read(),catalog=null,player=null,session=null,question=null,picks=new Set(),previous=null,resultBoard=null,sharedBoard=null;
@@ -8,10 +9,14 @@ function read(){try{const data=JSON.parse(localStorage.getItem(KEY));if(data&&Ar
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function visible(id){for(const section of document.querySelectorAll('main>section'))section.hidden=section.id!==id;document.body.classList.toggle('in-result',id==='result'||id==='shared');window.scrollTo(0,0)}
 function normalize(c){return {id:c.candidate_id||c.id,name:c.display_name||c.name,group:c.group||c.affiliation||'',officialCategory:c.official_category||c.officialCategory||'UNCLASSIFIED',imageUrl:c.image_source_url||c.imageUrl,sourceUrl:c.official_profile_url||c.sourceProfileUrl,imageStatus:c.image_status||'unverified'}}
-const entryParams=new URLSearchParams(location.search),requestedSet=entryParams.get('set'),requestedVersion=entryParams.get('version');
+const entryParams=new URLSearchParams(location.search),requestedSet=entryParams.get('set'),requestedVersion=entryParams.get('version'),requestedSetVersion=entryParams.get('setVersion');
+// Fragment never reaches Pages/Worker; remove the one-time invite from visible history immediately.
+let entryCapability=location.hash.startsWith('#invite=')?location.hash.slice(8):null,deliveryEndpoint=null,issuerCapability=null;
+if(entryCapability){history.replaceState(null,'',location.pathname+location.search);if(!/^[A-Za-z0-9_.-]{20,4096}$/.test(entryCapability))entryCapability=null}
 function configureCatalog(d){
   validateMaster(d);
   const candidates=d.candidate_master.map(normalize),sets=d.candidate_sets;
+  if(requestedSetVersion&&SET_IDS.includes(requestedSet)&&sets[requestedSet]?.version!==requestedSetVersion)throw Error('共有結果の候補セットVersionが一致しません');
   catalog={version:d.master_version,candidates,sets};
   for(const [id,label] of [['STARTO_SELECT','STARTO SELECT'],['JUNIOR_SELECT','JUNIOR SELECT'],['ALL_SELECT','ALL SELECT']]){
     const opt=[...$('set').options].find(o=>o.value===id);
@@ -23,7 +28,18 @@ function configureCatalog(d){
 async function loadCatalog(){
   $('begin').disabled=true;$('retryCatalog').hidden=true;$('catalogMessage').textContent='候補データを確認中…';
   try{
-    const {master,status}=await provision({requestedVersion});configureCatalog(master);
+    deliveryEndpoint=await distributionEndpoint();
+    let grant=entryCapability;
+    if(!grant)grant=await catalogRecord('get','issuerGrant');
+    const {master,status}=await provision({endpoint:deliveryEndpoint,authorization:grant,requestedVersion});configureCatalog(master);
+    if(grant){
+      let claim=null;try{claim=await inspectCapability({endpoint:deliveryEndpoint,capability:grant})}catch{}
+      if(claim?.scope==='issuer'&&claim.version===catalog.version){
+        issuerCapability=grant;
+        if(entryCapability===grant)await catalogRecord('put','issuerGrant',grant);
+      }
+    }
+    entryCapability=null;
     $('catalogMessage').textContent=`${catalog.version}／${status==='cached'?'保存済みデータを使用':status==='restored'?'保存済みVersionを復元':'候補データを取得して保存'}。`;
   }catch(error){
     try{
@@ -77,7 +93,7 @@ function shared(){
     const data=decode(location.hash.slice(7));
     if(!Number.isFinite(data.expiresAt)||Date.now()>data.expiresAt){$('sharedStatus').textContent='この共有リンクの有効期限は終了しました。';return true}
     if(!Array.isArray(data.ranking)||data.ranking.length!==9)throw Error('invalid');
-    $('selfSelect').href=SET_IDS.includes(data.setId)?'app.html?set='+encodeURIComponent(data.setId)+(data.version?'&version='+encodeURIComponent(data.version):''):'app.html';
+    $('selfSelect').href=newPlayerUrl(data,location.href);
     $('sharedStatus').textContent=`有効期限：${new Date(data.expiresAt).toLocaleString('ja-JP')}／候補セット：${data.version}`;
     const seenKey='bfs-shared-seen-'+location.hash.length+'-'+[...location.hash].reduce((h,c)=>(Math.imul(h,33)^c.charCodeAt(0))>>>0,5381);
     let seen=false;try{seen=sessionStorage.getItem(seenKey)==='1'}catch{}
@@ -94,6 +110,6 @@ function shared(){
   }catch{$('sharedStatus').textContent='共有URLを読み取れませんでした。'}
   return true;
 }
-$('begin').onclick=begin;$('resume').onclick=resume;$('past').onclick=resume;$('next').onclick=()=>{if(picks.size<question.min||[...$('faces').children].some(el=>el.disabled))return;previous=JSON.stringify(session.state);submitChoice(session.state,[...picks],{uncertain:$('uncertain').checked});persist();renderQuestion()};$('undo').onclick=()=>{if(previous){session.state=JSON.parse(previous);previous=null;persist();renderQuestion()}};$('leave').onclick=()=>{persist();refreshPlayers();$('playerList').value=player.id;$('playerList').onchange();visible('setup')};$('reveal').onclick=()=>resultBoard?.skip();$('replay').onclick=()=>mountResultBoard();$('detailClose').onclick=()=>$('detail').close();$('resultHome').onclick=()=>{resultBoard?.stop();refreshPlayers();$('playerList').value=player.id;$('playerList').onchange();visible('setup')};$('expiry').onchange=()=>$('customWrap').hidden=$('expiry').value!=='custom';$('makeShare').onclick=()=>{const hours=$('expiry').value==='custom'?Number($('customHours').value):Number($('expiry').value);if(!Number.isFinite(hours)||hours<1||hours>720){$('shareStatus').textContent='1〜720時間で指定してください。';return}const byId=new Map(candidateRecords().map(c=>[c.id,c]));const ranking=session.state.ranking.map(id=>{const c=byId.get(id);return {name:c.name,group:c.group,officialCategory:c.officialCategory,imageUrl:c.imageUrl,sourceUrl:c.sourceUrl}});const url=new URL(location.href);url.hash='share='+encode({expiresAt:Date.now()+hours*3600000,version:session.setVersion,setId:session.setId,visualMode:session.visualMode,selectedAt:session.createdAt,ranking});$('shareLink').hidden=false;$('shareLink').value=url.href;$('shareStatus').textContent='共有URLを作成しました。コピーして送れます。'};
+$('begin').onclick=begin;$('resume').onclick=resume;$('past').onclick=resume;$('next').onclick=()=>{if(picks.size<question.min||[...$('faces').children].some(el=>el.disabled))return;previous=JSON.stringify(session.state);submitChoice(session.state,[...picks],{uncertain:$('uncertain').checked});persist();renderQuestion()};$('undo').onclick=()=>{if(previous){session.state=JSON.parse(previous);previous=null;persist();renderQuestion()}};$('leave').onclick=()=>{persist();refreshPlayers();$('playerList').value=player.id;$('playerList').onchange();visible('setup')};$('reveal').onclick=()=>resultBoard?.skip();$('replay').onclick=()=>mountResultBoard();$('detailClose').onclick=()=>$('detail').close();$('resultHome').onclick=()=>{resultBoard?.stop();refreshPlayers();$('playerList').value=player.id;$('playerList').onchange();visible('setup')};$('expiry').onchange=()=>$('customWrap').hidden=$('expiry').value!=='custom';$('makeShare').onclick=async()=>{const hours=$('expiry').value==='custom'?Number($('customHours').value):Number($('expiry').value);if(!Number.isFinite(hours)||hours<1||hours>168){$('shareStatus').textContent='1〜168時間で指定してください。';return}const expiresAt=Date.now()+hours*3600000;$('makeShare').disabled=true;$('shareLink').hidden=true;$('shareStatus').textContent='共有リンクを準備中…';try{const provisionCapability=await issueReadCapability({endpoint:deliveryEndpoint,issuer:issuerCapability,version:session.masterVersion,expiresAt});const byId=new Map(candidateRecords().map(c=>[c.id,c]));const ranking=session.state.ranking.map(id=>{const c=byId.get(id);return {name:c.name,group:c.group,officialCategory:c.officialCategory,imageUrl:c.imageUrl,sourceUrl:c.sourceUrl}});const url=new URL(location.href);url.search='';url.hash='share='+encode({expiresAt,version:session.setVersion,masterVersion:session.masterVersion,setId:session.setId,visualMode:session.visualMode,selectedAt:session.createdAt,ranking,provisionCapability});$('shareLink').value=url.href;$('shareLink').hidden=false;$('shareStatus').textContent='共有URLを作成しました。コピーして送れます。'}catch(error){$('shareStatus').textContent=error.message}finally{$('makeShare').disabled=false}};
 $('historyOpen').onclick=()=>{player=db.players.find(p=>p.id===$('playerList').value);const a=db.archive[player.id],i=Number($('historyList').value),chosen=a.splice(i,1)[0];if(!chosen)return;const current=db.sessions[player.id];if(current)a.unshift(current);db.sessions[player.id]=chosen;session=chosen;save();previous=null;if(session.state.phase==='complete')showResult({instant:true});else renderQuestion()};
 refreshPlayers();if(!shared())visible('setup');

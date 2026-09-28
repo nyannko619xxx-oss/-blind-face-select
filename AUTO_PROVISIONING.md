@@ -1,5 +1,7 @@
 # Candidate Auto-Provisioning checkpoint — 2026-09-28
 
+**Later decision:** unrestricted public versioned JSON is rejected. The subsequent access-controlled implementation and direct-entry authorization limit are documented in [CAPABILITY_DISTRIBUTION.md](CAPABILITY_DISTRIBUTION.md). The comparison below is retained as earlier evidence, not the active delivery choice.
+
 ## State and release gate
 
 **Implementation on the review branch only. Public `main` and GitHub Pages remain unchanged.** The real 263-person 2026-09-28 master is private. No real-person ID/name/image-URL mapping or image binary is in this branch. `candidate-distribution.json` is a deliberately unconfigured placeholder. Publishing the private master would reverse the earlier private-mapping constraint, so automatic real-person access cannot be claimed until a distribution location and disclosure scope are chosen. Phase 2 remains NOT PASS; Retrospective Trigger remains unadopted. No Selection Engine or TOP9 semantics changed.

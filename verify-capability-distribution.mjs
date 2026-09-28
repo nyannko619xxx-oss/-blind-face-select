@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import {webcrypto} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import worker from './candidate-distribution-worker.mjs';
+import {provision,issueReadCapability,inspectCapability,digest} from './candidate-provision.js';
+import {newPlayerUrl} from './share-play.js';
+const page='https://nyannko619xxx-oss.github.io/-blind-face-select/app.html';
+const appOrigin=new URL(page).origin,api='https://private.example.test';
+const master=process.env.BFS_PRIVATE_MASTER
+  ? JSON.parse(readFileSync(process.env.BFS_PRIVATE_MASTER,'utf8'))
+  : (()=>{const candidates=Array.from({length:18},(_,i)=>({candidate_id:'fixture-'+i,identity_id:'fixture-'+i,display_name:'Fixture '+i,image_source_url:'https://official.example/image/'+i,official_profile_url:'https://official.example/profile/'+i}));return {schema_version:3,master_version:'fixture-v1',candidate_master:candidates,candidate_sets:{STARTO_SELECT:{version:'starto-fixture',ids:candidates.slice(0,9).map(c=>c.candidate_id)},JUNIOR_SELECT:{version:'junior-fixture',ids:candidates.slice(9).map(c=>c.candidate_id)},ALL_SELECT:{version:'all-fixture',ids:candidates.map(c=>c.candidate_id)}}}})();
+const sizes=Object.fromEntries(Object.entries(master.candidate_sets).map(([key,set])=>[key,set.ids.length]));
+const bytes=new TextEncoder().encode(JSON.stringify(master));
+const version=master.master_version,sha256=await digest(bytes,webcrypto);
+const manifest={schema_version:1,master_version:version,master_url:'/v1/master/'+version,sha256,editions:[]};
+const env={APP_ORIGIN:appOrigin,CAPABILITY_SECRET:'local-test-signing-secret-very-long',ADMIN_SECRET:'local-test-admin-secret-very-long',MANIFEST_JSON:JSON.stringify(manifest),
+  MASTER_BUCKET:{get:async key=>key==='masters/'+version+'.json'?{body:bytes}:null}};
+const send=(path,options={})=>worker.fetch(new Request(api+path,{...options,headers:{Origin:appOrigin,...options.headers}}),env);
+const inviteResponse=await send('/v1/admin/invite',{method:'POST',headers:{Authorization:'Bearer '+env.ADMIN_SECRET,'Content-Type':'application/json'},body:JSON.stringify({version,expiresAt:Date.now()+3*3600000,canShare:true})});
+assert.equal(inviteResponse.status,200);
+const {capability:issuer}=await inviteResponse.json();
+const token=await issueReadCapability({fetchApi:(url,options)=>send(new URL(url).pathname,options),endpoint:api,issuer,version,expiresAt:Date.now()+3600000});
+assert.equal((await inspectCapability({fetchApi:(url,options)=>send(new URL(url).pathname,options),endpoint:api,capability:token})).scope,'read');
+const stores=new Map(),storage=async(mode,key,value)=>mode==='get'?stores.get(key):stores.set(key,value);
+let masterFetches=0;
+const fetchApi=async(url,options={})=>{
+  if(String(url).endsWith('/candidate-distribution.json'))return new Response(JSON.stringify({schema_version:2,endpoint_url:api+'/'}));
+  if(new URL(url).pathname.startsWith('/v1/master/'))masterFetches++;
+  return send(new URL(url).pathname,options);
+};
+const result=await provision({fetchApi,origin:page,storage,cryptoApi:webcrypto,authorization:token});
+assert.equal(result.status,'downloaded');
+assert.deepEqual(Object.fromEntries(Object.entries(result.master.candidate_sets).map(([key,set])=>[key,set.ids.length])),sizes);
+assert.equal((await provision({fetchApi,origin:page,storage,cryptoApi:webcrypto})).status,'cached');
+assert.equal(masterFetches,1);
+assert.equal(stores.get('active').master_version,version);
+assert.equal(await (await send('/v1/master/'+version)).status,401);
+assert.equal(await (await send('/v1/grants',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({version,expiresAt:Date.now()+3600000})})).status,403);
+assert.equal(await (await send('/v1/master/'+version,{headers:{Authorization:'Bearer '+token+'tampered'}})).status,401);
+assert.equal(await (await send('/v1/master/other',{headers:{Authorization:'Bearer '+token}})).status,404);
+assert.equal(await (await send('/v1/grants',{method:'POST',headers:{Authorization:'Bearer '+issuer,'Content-Type':'application/json'},body:JSON.stringify({version,expiresAt:Date.now()+8*24*3600000})})).status,400);
+const short=await issueReadCapability({fetchApi:(url,options)=>send(new URL(url).pathname,options),endpoint:api,issuer,version,expiresAt:Date.now()+150});
+await new Promise(resolve=>setTimeout(resolve,220));
+assert.equal(await (await send('/v1/master/'+version,{headers:{Authorization:'Bearer '+short}})).status,401);
+const wrongOrigin=await worker.fetch(new Request(api+'/v1/manifest',{headers:{Origin:'https://hostile.example'}}),env);
+assert.equal(wrongOrigin.status,403);
+const publicManifest=await (await send('/v1/manifest')).text();
+assert(!publicManifest.includes(master.candidate_master[0].display_name));
+const simulatedShare={ranking:Array.from({length:9},(_,i)=>({name:'Test '+i})),setId:'JUNIOR_SELECT',version:master.candidate_sets.JUNIOR_SELECT.version,masterVersion:version,provisionCapability:token};
+const sharedUrl=new URL(page);sharedUrl.hash='share='+Buffer.from(JSON.stringify(simulatedShare)).toString('base64url');
+const decoded=JSON.parse(Buffer.from(sharedUrl.hash.slice(7),'base64url').toString());
+const play=new URL(newPlayerUrl(decoded,sharedUrl.href));
+assert.equal(new URL(play).searchParams.get('set'),'JUNIOR_SELECT');
+assert.equal(play.searchParams.get('version'),version);
+assert.equal(play.searchParams.get('setVersion'),master.candidate_sets.JUNIOR_SELECT.version);
+assert(play.hash.startsWith('#invite='));
+assert.equal((await provision({fetchApi,origin:play.href,storage:async()=>undefined,cryptoApi:webcrypto,requestedVersion:decoded.masterVersion,authorization:decoded.provisionCapability})).master.candidate_sets.JUNIOR_SELECT.ids.length,sizes.JUNIOR_SELECT);
+// No sender answers/history are in the share-to-play payload.
+assert(!('history' in decoded)&&!('uncertainty' in decoded)&&!('answers' in decoded));
+console.log('Private capability transport PASS:',sizes,'clean/cache, share-to-play, scope, tamper, CORS and expiry bounds');
