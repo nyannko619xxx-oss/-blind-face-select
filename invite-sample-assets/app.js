@@ -2,12 +2,16 @@ const $=id=>document.getElementById(id),KEY='bfs-invite-sample-session-v0.1',OWN
 const endpoint=new URL(location.href).origin;
 let sessionToken=localStorage.getItem(KEY),invitationUrl='',pendingInvite=null;
 const status=s=>$('status').textContent=s;
+// Preserve an unclaimed code from an older still-open tab across future tab closures.
+const legacyCode=sessionStorage.getItem(OWNER_KEY);
+if(!localStorage.getItem(OWNER_KEY)&&/^[a-f0-9]{64}$/.test(legacyCode||''))localStorage.setItem(OWNER_KEY,legacyCode);
+if(legacyCode)sessionStorage.removeItem(OWNER_KEY);
 async function api(path,{method='GET',body,authorized=true}={}){
   const headers={'Content-Type':'application/json'};if(authorized&&sessionToken)headers.Authorization='Bearer '+sessionToken;
   const result=await fetch(endpoint+path,{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store',referrerPolicy:'no-referrer'});
   const json=await result.json();if(!result.ok)throw Object.assign(Error(json.error||'request_failed'),{code:result.status});return json;
 }
-function showAccess(message){$('access').hidden=false;$('play').hidden=$('invitePanel').hidden=true;status(message);$('claimInvite').hidden=!pendingInvite;$('ownerSetup').hidden=!!pendingInvite;$('ownerPanel').hidden=!!pendingInvite||!localStorage.getItem(OWNER_KEY);if(!$('ownerPanel').hidden)$('ownerCode').value=localStorage.getItem(OWNER_KEY);$('ownerSetup').hidden=!!pendingInvite||!!localStorage.getItem(OWNER_KEY);$('devOwner').hidden=!['localhost','127.0.0.1'].includes(location.hostname);$('accessHelp').textContent=$('devOwner').hidden?'招待URLを受け取るか、初回Owner設定を行ってください。':'ローカル試験ではOwnerを発行できます。'}
+function showAccess(message){$('access').hidden=false;$('play').hidden=$('invitePanel').hidden=true;status(message);$('claimInvite').hidden=!pendingInvite;$('ownerSetup').hidden=!!pendingInvite;$('ownerPanel').hidden=!!pendingInvite||!localStorage.getItem(OWNER_KEY);if(!$('ownerPanel').hidden)$('ownerCode').value=localStorage.getItem(OWNER_KEY);$('ownerSetup').hidden=!!pendingInvite||!!localStorage.getItem(OWNER_KEY);$('restoreOwner').hidden=!!pendingInvite;$('devOwner').hidden=!['localhost','127.0.0.1'].includes(location.hostname);$('accessHelp').textContent=$('devOwner').hidden?'招待URLを受け取るか、初回Owner設定を行ってください。':'ローカル試験ではOwnerを発行できます。'}
 async function showSession(){
   try{
     const [me,fixture]=await Promise.all([api('/v1/sample/session'),api('/v1/sample/fixture')]);
@@ -39,6 +43,8 @@ $('claimInvite').onclick=async()=>{
   catch(error){pendingInvite=null;showAccess(error.code===410?'この招待は使用済み、または期限切れです。':'招待を受け取れませんでした。')}
   finally{$('claimInvite').disabled=false}
 };
+$('restoreOwner').onclick=()=>{$('ownerPanel').hidden=false;$('ownerCode').readOnly=false;$('ownerCode').value='';$('ownerCode').focus();$('ownerMessage').textContent='Cloudflareへ登録済みの旧コードが手元にある場合、この欄へ貼り付けてください。';};
+$('ownerCode').oninput=()=>{if($('ownerCode').readOnly)return;const code=$('ownerCode').value.trim();if(/^[a-f0-9]{64}$/.test(code)){localStorage.setItem(OWNER_KEY,code);$('ownerCode').readOnly=true;$('ownerSetup').hidden=true;$('ownerMessage').textContent='登録済みコードをこのブラウザに保存しました。';}};
 $('ownerSetup').onclick=()=>{
   let code=localStorage.getItem(OWNER_KEY);
   if(!code){code=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');localStorage.setItem(OWNER_KEY,code)}
@@ -49,6 +55,7 @@ $('copyOwnerCode').onclick=async()=>{
   catch{$('ownerCode').select();status('コピーできませんでした。選択されたコードをコピーしてください。')}
 };
 $('ownerClaim').onclick=async()=>{
+  if(!/^[a-f0-9]{64}$/.test(localStorage.getItem(OWNER_KEY)||'')){$('ownerMessage').textContent='64文字の登録済みコードを貼り付けてください。';return}
   $('ownerClaim').disabled=true;$('ownerMessage').textContent='Owner Sessionを確認中…';
   try{
     const data=await api('/v1/sample/owner/claim',{method:'POST',body:{ownerCode:localStorage.getItem(OWNER_KEY)},authorized:false});
