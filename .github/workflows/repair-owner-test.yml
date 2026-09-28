@@ -75,11 +75,11 @@ jobs:
             let assetsReady=false;
             for(let attempt=0;attempt<8;attempt++){
               await new Promise(resolve=>setTimeout(resolve,5000));
-              const html=await fetch(origin+'/?v=owner-persist-20260928-2',{cache:'no-store'});
+              const html=await fetch(origin+'/?v=owner-persist-20260928-3',{cache:'no-store'});
               const page=await html.text();
-              const js=await fetch(origin+'/app.js?v=owner-persist-20260928-2',{cache:'no-store'});
+              const js=await fetch(origin+'/app.js?v=owner-persist-20260928-3',{cache:'no-store'});
               const source=fs.readFileSync('invite-sample-assets/app.js','utf8');
-              assetsReady=html.status===200&&page.includes('id="ownerMessage"')&&page.includes('owner-persist-20260928-2')&&page.includes('[hidden]{display:none!important}')&&page.includes('app.js?v=owner-persist-20260928-2')&&js.status===200&&(await js.text())===source;
+              assetsReady=html.status===200&&page.includes('id="restoreOwner"')&&page.includes('id="ownerMessage"')&&page.includes('owner-persist-20260928-3')&&page.includes('[hidden]{display:none!important}')&&page.includes('app.js?v=owner-persist-20260928-3')&&js.status===200&&(await js.text())===source;
               if(assetsReady)break;
             }
             if(!assetsReady)throw Error('repaired_assets_not_propagated');
