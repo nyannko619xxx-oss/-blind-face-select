@@ -1,6 +1,6 @@
 import {createSelection,nextQuestion,submitChoice,selectionAudit} from './selection-engine.js';
 
-const ids=Array.from({length:45},(_,i)=>`sample-${String(i+1).padStart(2,'0')}`);
+const ids=Array.from({length:55},(_,i)=>`sample-${String(i+1).padStart(2,'0')}`);
 const keyPrefix='bfs-invite-game-v0.2-';
 const phases={preliminary:'最初の選考',main:'次の選考',late:'候補を絞る',recovery:'候補を補う',boundary:'最後の確認',rank:'順位を決める'};
 const position=id=>ids.indexOf(id)+1;
@@ -17,14 +17,14 @@ export async function mountFixtureGame(host,sessionToken){
   const suffix=Array.from(new Uint8Array(digest)).slice(0,12).map(x=>x.toString(16).padStart(2,'0')).join('');
   const key=keyPrefix+suffix;
   let saved;try{saved=JSON.parse(localStorage.getItem(key)||'null')}catch{saved=null}
-  let state=saved?.version===2&&saved?.poolVersion==='sample-45-v1'&&saved?.engine?.version===3?saved.engine:null;
+  let state=saved?.version===2&&saved?.poolVersion==='sample-55-v1'&&saved?.engine?.version===3?saved.engine:null;
   host.replaceChildren();
-  const intro=document.createElement('div');intro.innerHTML='<h2>顔だけで選んでみる</h2><p>45人の架空候補から、好みのTOP9を選びます。名前や所属は選考中に表示しません。途中で閉じても、このブラウザで続きから再開できます。</p><button id="startGame">選考を始める</button>';
+  const intro=document.createElement('div');intro.innerHTML='<h2>顔だけで選んでみる</h2><p>55人の架空候補から、好みのTOP9を選びます。名前や所属は選考中に表示しません。途中で閉じても、このブラウザで続きから再開できます。</p><button id="startGame">選考を始める</button>';
   const game=document.createElement('div');game.hidden=true;game.innerHTML='<h2 id="gamePhase"></h2><p id="gameProgress"></p><div id="gameFaces" class="game-faces"></div><p id="gameHint"></p><label class="uncertain"><input id="gameUncertain" type="checkbox">この比較は迷った</label><p><button id="gameNext" disabled>次へ進む</button></p>';
   const result=document.createElement('div');result.hidden=true;result.innerHTML='<h2>あなたのTOP9</h2><p id="gameSummary"></p><ol id="gameRanking" class="game-ranking"></ol><button id="gameAgain">もう一度選ぶ</button>';
   host.append(intro,game,result);
   const $=id=>host.querySelector('#'+id);
-  const save=()=>localStorage.setItem(key,JSON.stringify({version:2,poolVersion:'sample-45-v1',engine:state}));
+  const save=()=>localStorage.setItem(key,JSON.stringify({version:2,poolVersion:'sample-55-v1',engine:state}));
   const render=()=>{
     intro.hidden=!!state;game.hidden=true;result.hidden=true;
     if(!state)return;
