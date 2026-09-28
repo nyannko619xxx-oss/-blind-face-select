@@ -36,6 +36,7 @@ try{
   await page.locator('.board-card.is-next[data-rank="7"]').waitFor();
   assert.equal(await page.locator('.board-card.is-revealed').count(),2);
   await page.reload();await page.locator('.mode-card[data-set="STARTO_SELECT"]').click();
+  await page.locator('.board-card.is-next[data-rank="7"]').waitFor();
   assert.equal(await page.locator('.board-card.is-revealed').count(),2);
   assert.equal(await page.locator('.board-card.is-next').getAttribute('data-rank'),'7');
   for(const rank of [7,6,5,4,3,2,1])await page.locator(`.board-card[data-rank="${rank}"]`).click();
