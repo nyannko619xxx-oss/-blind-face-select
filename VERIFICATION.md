@@ -1,3 +1,9 @@
+# Anonymous Invite Sample v0.1 — 2026-09-28
+
+**IMPLEMENTED / LOCAL API VERIFIED; REMOTE/HUMAN UNVERIFIED.** Separate experimental Worker, D1-compatible schema, static UI, loopback-only local server and two automated tests. Fixture has five fictional FACE labels and no candidate mapping or image binaries. `node verify-invite-sample.mjs` passed: JST midnight issue reset, one/session/day, 30 concurrent claims yielded exactly one recipient, re-invite by recipient, unauthorized and expiry checks. `node verify-invite-sample-http.mjs` passed the local HTTP flow and static asset access. No production Selection Engine or public main/Pages change. See `ANONYMOUS_INVITE_SAMPLE.md` for run instructions, mechanism, and limits.
+
+Cloudflare D1, browser Share Sheet, iPad Safari, human test, real Candidate Master access and account billing remain UNVERIFIED. No R2 subscription, Worker or D1 creation, payment method, or public deploy occurred. Phase 2 NOT PASS; Retrospective Trigger UNADOPTED.
+
 # Cloud Browser activation attempt — 2026-09-28
 
 **BLOCKED before login and billing inspection.** With explicit authorization to use Cloud Browser, opened `https://dash.cloudflare.com/`. Cloudflare displayed its “セキュリティ検証の実行” page (“しばらくお待ちください…”). After one allowed reload, the same verification page remained and the dashboard did not load. This was reported as a challenge loop. No account identity, Workers/R2 plan, billing state, or payment requirements could be observed. No CAPTCHA was solved and no credential was entered.
