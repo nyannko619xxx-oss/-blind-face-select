@@ -13,6 +13,7 @@ try{
   await page.route('**/v1/sample/fixture',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({cards:[1,2,3,4,5]})}));
   await page.route('https://example.invalid/**',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="120" height="160"><rect width="120" height="160" fill="#34445a"/></svg>'}));
   await page.goto(origin+'/#session='+'a'.repeat(64));
+  await page.locator('.mode-card[data-set="STARTO_SELECT"]').click();
   await page.locator('.owner-setup input[type=file]').waitFor();
   await page.locator('.owner-setup input[type=file]').setInputFiles({name:'private-test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(master))});
   await page.getByRole('button',{name:'選考を始める'}).click();
@@ -25,9 +26,19 @@ try{
     await cards.first().click();
     await page.getByRole('button',{name:'次へ進む'}).click();
     await page.waitForFunction(previous=>!document.querySelector('.owner-result').hidden||document.querySelector('.owner-selection p')?.textContent!==previous,before);
-    if(screens===11){await page.reload();await page.locator('.owner-selection .game-face').first().waitFor();resumed=true}
+    if(screens===11){await page.reload();await page.locator('.mode-card[data-set="STARTO_SELECT"]').click();await page.locator('.owner-selection .game-face').first().waitFor();resumed=true}
   }
   assert.equal(await page.locator('.board-card').count(),9);assert(seen.has(5)&&seen.has(4)&&seen.has(3)&&resumed);assert.equal(candidateUpload,0);
-  await page.reload();await page.locator('.board.is-final .board-card.is-revealed').first().waitFor();assert.equal(await page.locator('.board-card.is-revealed').count(),9);
-  console.log(JSON.stringify({result:'PASS',syntheticOwner:true,screenCount:screens,display5_4_3:true,resume:true,top9:true,candidateUpload:false}));
+  await page.reload();await page.locator('.mode-card[data-set="STARTO_SELECT"]').click();await page.locator('.board.is-final .board-card.is-revealed').first().waitFor();assert.equal(await page.locator('.board-card.is-revealed').count(),9);
+  await page.getByRole('button',{name:'ホームへ'}).click();
+  for(const setId of ['JUNIOR_SELECT','ALL_SELECT']){
+    await page.locator(`.mode-card[data-set="${setId}"]`).click();
+    await page.getByRole('button',{name:'選考を始める'}).click();
+    assert.equal(await page.locator('.owner-selection .game-face').count(),5);
+    await page.reload();await page.locator(`.mode-card[data-set="${setId}"]`).click();
+    assert.equal(await page.locator('.owner-selection .game-face').count(),5);
+    await page.getByRole('button',{name:'ホームへ'}).click();
+  }
+  assert.equal(candidateUpload,0);
+  console.log(JSON.stringify({result:'PASS',syntheticOwner:true,startoScreens:screens,display5_4_3:true,resume:true,top9:true,junior158:true,all263:true,candidateUpload:false}));
 }finally{await browser.close()}

@@ -452,3 +452,10 @@ See `REAL_CANDIDATE_GATE.md` for storage/origin limitation and test boundary.
 GitHub Actions run `36443021579` for `checkpoint/owner-real-play` commit `8cb9f8b` completed SUCCESS. The exact Test Worker/static assets were deployed; live endpoint checks passed for Owner marker preservation (one existing claim), recipient `owner=false`, unauthorized requests and previous Invite behavior. A clean browser completed the unchanged 55-person fixture sender/recipient E2E (42 screens each, one-time Invite). A separate synthetic 263-record private file was selected in a mocked Owner browser session, with STARTO 105 gameplay reaching TOP9 in 53 screens; 5/4/3 display, resume, frozen Result reload and no candidate-data upload were verified. The mocked Owner session tests UI routing without exporting or logging the genuine Master and does not substitute for the human Owner's real Safari session.
 
 IMPLEMENTED and AUTOMATED VERIFIED for Test route and fixture/synthetic browser flows. Genuine official image load, crop, endurance, selection quality and physical iPad Safari Owner play remain UNVERIFIED. Rights remain UNVERIFIED. Public main remains `00b39fd5f7794fba44333cff1d183a6ecfa90931`, unchanged. Phase 2 remains NOT PASS; Retrospective Trigger remains UNADOPTED.
+
+
+### Playable Home checkpoint｜2026-09-29
+
+IMPLEMENTED on isolated Test branch: authenticated Home, Owner STARTO 105 / Junior 158 / ALL 263 mode cards, natural Resume / saved Result entry, Owner setup hidden during valid session, Invite as separate Home route, explicit image-error stop and reload. The existing STARTO key and frozen session remain compatible; Selection Engine/Invite backend unchanged. See `PLAYABLE_SAMPLE.md`.
+
+Human QA evidence from Owner iPad Safari: STARTO official-origin images displayed in the five-face Selection screen, with uncertainty and choice controls visible. This updates *technical image display for the shown STARTO screen* to HUMAN VERIFIED. Full STARTO play, Junior/ALL images, Safari resume and TOP9 remain UNVERIFIED; image rights remain UNVERIFIED. Automated Test deployment result follows separately.

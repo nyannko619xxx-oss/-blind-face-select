@@ -14,7 +14,7 @@ const createPage=({validCode=null}={})=>{
       const code=JSON.parse(init.body).ownerCode;
       return {ok:code===validCode,status:code===validCode?201:403,json:async()=>code===validCode?{sessionToken:'a'.repeat(64)}:{error:'invalid_owner_code'}};
     }
-    return {ok:true,status:200,json:async()=>path.endsWith('/session')?{jstDay:'2026-09-28',inviteAvailable:true,expiresAt:Date.now()+100000}:{cards:['FACE 01']}};
+    return {ok:true,status:200,json:async()=>path.endsWith('/session')?{jstDay:'2026-09-28',inviteAvailable:true,expiresAt:Date.now()+100000}:{cards:['FACE 01','FACE 02','FACE 03','FACE 04','FACE 05']}};
   }};
   vm.runInNewContext(source.replace(/^import[^\n]+\n/gm,''),context);
   return {get,calls};
@@ -43,7 +43,8 @@ assert.equal(page.calls.filter(c=>c.path.endsWith('/owner/claim')).length,1);
 assert.equal(state.has(key),false);
 assert.equal(state.get('bfs-invite-sample-session-v0.1'),'a'.repeat(64));
 page=createPage();await new Promise(resolve=>setImmediate(resolve));
-assert.equal(page.get('play').hidden,false);
+assert.equal(page.get('home').hidden,false);
+assert.equal(page.get('play').hidden,true);
 assert.equal(page.get('ownerPanel').hidden,true);
 assert.equal(page.get('makeInvite').disabled,false);
 console.log('owner storage reload/new-tab restoration, successful claim cleanup, session and invite controls PASS');

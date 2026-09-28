@@ -1,8 +1,9 @@
 import {mountFixtureGame} from './game.js?v=sample-v02-1';
-import {mountOwnerRealGame} from './real-game.js?v=owner-real-01';
+import {mountOwnerRealGame} from './real-game.js?v=playable-01';
+import {ownerGameStatus,SETS} from './owner-master.js?v=playable-01';
 const $=id=>document.getElementById(id),KEY='bfs-invite-sample-session-v0.1',OWNER_KEY='bfs-invite-sample-owner-code-v0.1';
 const endpoint=new URL(location.href).origin;
-let sessionToken=localStorage.getItem(KEY),invitationUrl='',pendingInvite=null;
+let sessionToken=localStorage.getItem(KEY),invitationUrl='',pendingInvite=null,currentSession=null;
 const status=s=>$('status').textContent=s;
 // Preserve an unclaimed code from an older still-open tab across future tab closures.
 const legacyCode=sessionStorage.getItem(OWNER_KEY);
@@ -13,21 +14,40 @@ async function api(path,{method='GET',body,authorized=true}={}){
   const result=await fetch(endpoint+path,{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store',referrerPolicy:'no-referrer'});
   const json=await result.json();if(!result.ok)throw Object.assign(Error(json.error||'request_failed'),{code:result.status});return json;
 }
-function showAccess(message){$('access').hidden=false;$('play').hidden=$('invitePanel').hidden=true;status(message);$('claimInvite').hidden=!pendingInvite;$('ownerSetup').hidden=!!pendingInvite;$('ownerPanel').hidden=!!pendingInvite||!localStorage.getItem(OWNER_KEY);if(!$('ownerPanel').hidden)$('ownerCode').value=localStorage.getItem(OWNER_KEY);$('ownerSetup').hidden=!!pendingInvite||!!localStorage.getItem(OWNER_KEY);$('restoreOwner').hidden=!!pendingInvite;$('devOwner').hidden=!['localhost','127.0.0.1'].includes(location.hostname);$('accessHelp').textContent=$('devOwner').hidden?'招待URLを受け取るか、初回Owner設定を行ってください。':'ローカル試験ではOwnerを発行できます。'}
+function showAccess(message){$('access').hidden=false;$('home').hidden=$('play').hidden=$('invitePanel').hidden=$('homeButton').hidden=true;status(message);$('claimInvite').hidden=!pendingInvite;$('ownerSetup').hidden=!!pendingInvite;$('ownerPanel').hidden=!!pendingInvite||!localStorage.getItem(OWNER_KEY);if(!$('ownerPanel').hidden)$('ownerCode').value=localStorage.getItem(OWNER_KEY);$('ownerSetup').hidden=!!pendingInvite||!!localStorage.getItem(OWNER_KEY);$('restoreOwner').hidden=!!pendingInvite;$('devOwner').hidden=!['localhost','127.0.0.1'].includes(location.hostname);$('accessHelp').textContent=$('devOwner').hidden?'招待リンクを開くと利用できます。初回の設定や復旧は下の項目から行えます。':'ローカル試験ではOwnerを発行できます。'}
+async function showHome(){
+  $('access').hidden=$('ownerPanel').hidden=$('retrySession').hidden=$('play').hidden=$('invitePanel').hidden=$('homeButton').hidden=true;
+  $('home').hidden=false;$('modes').replaceChildren();
+  if(currentSession?.owner){
+    for(const [setId,set] of Object.entries(SETS)){
+      const info=await ownerGameStatus(sessionToken,setId);
+      const button=document.createElement('button');button.type='button';button.className='mode-card';button.dataset.set=setId;
+      const title=document.createElement('strong');title.textContent=set.title;
+      const count=document.createElement('span');count.textContent=`${set.count}人`;
+      const state=document.createElement('small');state.textContent=info.progress==='in_progress'?'続きから':info.progress==='complete'?'TOP9を見る':'選考を始める';
+      button.append(title,count,state);button.onclick=()=>openGame(setId);$('modes').append(button);
+    }
+  }else{
+    const button=document.createElement('button');button.type='button';button.className='mode-card';button.dataset.set='SAMPLE';button.textContent='顔だけで選ぶ｜体験版';button.onclick=()=>openGame('SAMPLE');$('modes').append(button);
+  }
+  status('');
+}
+async function openGame(setId){
+  $('home').hidden=$('invitePanel').hidden=true;$('play').hidden=$('homeButton').hidden=false;
+  try{if(currentSession?.owner&&setId in SETS)await mountOwnerRealGame($('play'),sessionToken,{setId});else if(!currentSession?.owner&&setId==='SAMPLE')await mountFixtureGame($('play'),sessionToken);else throw Error('mode_unavailable');status('')}
+  catch{status('選考画面を開けませんでした。ホームに戻って再度お試しください。')}
+}
 async function showSession(){
   try{
     const [me,fixture]=await Promise.all([api('/v1/sample/session'),api('/v1/sample/fixture')]);
-    $('access').hidden=$('ownerPanel').hidden=$('retrySession').hidden=true;$('play').hidden=$('invitePanel').hidden=false;
+    currentSession=me;
     $('quota').textContent=`今日の招待：${me.inviteAvailable?'利用できます':'使用済みです'}。招待枠は毎日0:00（日本時間）に更新されます。`;
     $('makeInvite').disabled=!me.inviteAvailable;
     if(!Array.isArray(fixture.cards)||fixture.cards.length!==5)throw new Error('sample_unavailable');
-    $('modeNote').textContent=me.owner?'Owner用の実候補テストです。候補ファイルと結果はこの端末内に保存します。':'架空候補で遊べる体験版です。';
-    if(me.owner)await mountOwnerRealGame($('play'),sessionToken);
-    else await mountFixtureGame($('play'),sessionToken);
-    status('準備ができました。');
+    await showHome();
     return true;
   }catch(error){
-    if(error.code===401){sessionToken=null;localStorage.removeItem(KEY);showAccess('Sessionが無効または期限切れです。');return false}
+    if(error.code===401){sessionToken=null;currentSession=null;localStorage.removeItem(KEY);showAccess('利用期限が終了しました。招待リンクから始めてください。');return false}
     // A one-time Owner Claim may have succeeded even if the next fetch fails.
     // Keep its token, so reload can resume without consuming the Owner slot again.
     $('retrySession').hidden=false;
@@ -72,10 +92,12 @@ $('ownerClaim').onclick=async()=>{
   }finally{$('ownerClaim').disabled=false}
 };
 $('retrySession').onclick=()=>showSession();
+$('homeButton').onclick=()=>showHome();
+$('inviteFromHome').onclick=()=>{$('home').hidden=$('play').hidden=true;$('invitePanel').hidden=$('homeButton').hidden=false};
 $('makeInvite').onclick=async()=>{
   $('makeInvite').disabled=true;
   try{const grant=await api('/v1/sample/invites',{method:'POST'});const url=new URL('index.html',location.href);url.hash='invite='+grant.inviteToken;invitationUrl=url.href;$('inviteLink').value=invitationUrl;$('shareArea').hidden=false;$('quota').textContent=`今日の招待は使用済みです。有効期限：${new Date(grant.expiresAt).toLocaleString('ja-JP')}`;status('招待URLを発行しました。')}
-  catch(error){status(error.code===409?'本日の招待枠は使用済みです。':'招待を発行できませんでした。');if(error.code!==409)$('makeInvite').disabled=false}
+  catch(error){status(error.code===409?'今日の招待は使用済みです。':'招待を発行できませんでした。');if(error.code!==409)$('makeInvite').disabled=false}
 };
 $('share').onclick=async()=>{if(!invitationUrl)return;if(navigator.share){try{await navigator.share({title:'Blind Face Select 招待',url:invitationUrl});status('共有画面を開きました。')}catch(error){if(error.name!=='AbortError')status('共有できませんでした。リンクをコピーしてください。')}}else $('copy').click()};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(invitationUrl);status('招待URLをコピーしました。')}catch{const input=$('inviteLink');input.select();status('コピーできませんでした。表示されたURLを選択してコピーしてください。')}};
