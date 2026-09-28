@@ -26,8 +26,9 @@ export async function mountOwnerRealGame(host,sessionToken){
   let state=saved?.setVersion===OWNER_SET_VERSION&&saved.engine?.version===3?saved.engine:null;
   let frozen=state&&saved.snapshot?.setVersion===OWNER_SET_VERSION&&saved.snapshot.candidates?.length===105?saved.snapshot:null;
   if(state&&!frozen){state=null;saved=null}
+  let startedAt=saved?.startedAt||null,completedAt=saved?.completedAt||null;
   const records=()=>new Map(frozen.candidates.map(c=>[c.candidate_id,c]));
-  const save=async()=>privateRecord('put',key,{setVersion:OWNER_SET_VERSION,startedAt:saved?.startedAt||new Date().toISOString(),completedAt:state.phase==='complete'?saved?.completedAt||new Date().toISOString():null,snapshot:frozen,engine:state});
+  const save=async()=>privateRecord('put',key,{setVersion:OWNER_SET_VERSION,startedAt,completedAt:state.phase==='complete'?completedAt:null,snapshot:frozen,engine:state});
   const render=async()=>{
     if(board){board.stop();board=null}
     setup.hidden=!!master||!!state;intro.hidden=game.hidden=result.hidden=true;
@@ -41,26 +42,28 @@ export async function mountOwnerRealGame(host,sessionToken){
         const img=node('img');img.src=c.image_source_url;img.alt='';img.className='detail-photo';detailBody.append(img);
         const link=node('a','', '公式プロフィール');link.href=c.official_profile_url;link.target='_blank';link.rel='noopener noreferrer';detailBody.append(link);detail.showModal();
       }});
-      if(saved?.completedAt)board.showAll();else board.play();
+      if(completedAt)board.showAll();else board.play();
       // Completion is committed before animation; a later visit opens the completed board.
-      saved={...saved,completedAt:new Date().toISOString()};await save();return;
+      completedAt ||= new Date().toISOString();await save();return;
     }
     game.hidden=false;phase.textContent=phases[q.phase];progress.textContent=`${state.history.length+1}回目｜${q.ids.length}人から${q.max}人まで選択`;
     hint.textContent=q.max===1?'より好みの顔を1人選んでください。':`好みの顔を1〜${q.max}人選んでください。`;
+    for(const old of faces.querySelectorAll('img'))old.onerror=old.onload=null;
     faces.replaceChildren();uncertain.checked=false;next.disabled=true;const picks=new Set(),byId=records();
     for(const [index,id] of q.ids.entries()){
       const c=byId.get(id);if(!c)throw Error('保存した候補を確認できません。');
-      const button=node('button','game-face');button.type='button';button.setAttribute('aria-label',`顔 ${index+1}`);button.setAttribute('aria-pressed','false');
-      const img=node('img','real-portrait');img.alt='';img.loading='eager';img.referrerPolicy='no-referrer';img.src=c.image_source_url;
+      const button=node('button','game-face');button.type='button';button.disabled=true;button.setAttribute('aria-label',`顔 ${index+1}`);button.setAttribute('aria-pressed','false');
+      const img=node('img','real-portrait');img.alt='';img.loading='eager';img.referrerPolicy='no-referrer';
+      img.onload=()=>{button.disabled=false;if(picks.size>=q.min&&!faces.querySelector('.game-face:disabled'))next.disabled=false};
       img.onerror=()=>{button.disabled=true;button.classList.add('image-error');hint.textContent='候補画像を読み込めませんでした。通信状態を確認し、ページを再読み込みしてください。';next.disabled=true};
-      button.append(img);button.onclick=()=>{if(picks.has(id))picks.delete(id);else if(picks.size<q.max)picks.add(id);for(const b of faces.children)b.setAttribute('aria-pressed',String(picks.has(b._candidateId)));next.disabled=picks.size<q.min||!!faces.querySelector('.image-error')};
-      button._candidateId=id;faces.append(button);
+      button.append(img);button.onclick=()=>{if(picks.has(id))picks.delete(id);else if(picks.size<q.max)picks.add(id);for(const b of faces.children)b.setAttribute('aria-pressed',String(picks.has(b._candidateId)));next.disabled=picks.size<q.min||!!faces.querySelector('.game-face:disabled')};
+      button._candidateId=id;faces.append(button);img.src=c.image_source_url;
     }
-    next.onclick=async()=>{if(picks.size<q.min||faces.querySelector('.image-error'))return;next.disabled=true;submitChoice(state,[...picks],{uncertain:uncertain.checked});await save();await render()};
+    next.onclick=async()=>{if(picks.size<q.min||faces.querySelector('.game-face:disabled'))return;next.disabled=true;submitChoice(state,[...picks],{uncertain:uncertain.checked});await save();await render()};
   };
   input.onchange=async()=>{try{const candidate=await readOwnerFile(input.files?.[0]);await privateRecord('put',catalogKey,candidate);master=candidate;setupStatus.textContent='候補データをこの端末に保存しました。';await render()}catch(error){setupStatus.textContent=error.message}finally{input.value=''}};
-  start.onclick=async()=>{if(!master)return;frozen=startoSnapshot(master);state=createSelection(frozen.candidates.map(c=>c.candidate_id),{lateSize:3,recheckMode:'baseline'});saved=null;await save();await render()};
-  again.onclick=async()=>{if(!master){setup.hidden=false;return}frozen=startoSnapshot(master);state=createSelection(frozen.candidates.map(c=>c.candidate_id),{lateSize:3,recheckMode:'baseline'});saved=null;await save();await render()};
+  start.onclick=async()=>{if(!master)return;frozen=startoSnapshot(master);state=createSelection(frozen.candidates.map(c=>c.candidate_id),{lateSize:3,recheckMode:'baseline'});startedAt=new Date().toISOString();completedAt=null;await save();await render()};
+  again.onclick=async()=>{if(!master){setup.hidden=false;return}frozen=startoSnapshot(master);state=createSelection(frozen.candidates.map(c=>c.candidate_id),{lateSize:3,recheckMode:'baseline'});startedAt=new Date().toISOString();completedAt=null;await save();await render()};
   replay.onclick=()=>{if(board){board=createRevealBoard(ranking,state.ranking.map(id=>{const c=records().get(id);return {name:c.display_name,imageUrl:c.image_source_url,candidate:c}}),{onDetail:(rank,item)=>{const c=item.candidate;detailBody.replaceChildren(node('h3','',`${rank}位 ${c.display_name}`),node('p','',c.group||''));const link=node('a','', '公式プロフィール');link.href=c.official_profile_url;link.target='_blank';link.rel='noopener noreferrer';detailBody.append(link);detail.showModal()}});board.play()}};
   await render();
 }
