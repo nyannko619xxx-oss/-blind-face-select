@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createSelection,nextQuestion,submitChoice} from './invite-sample-assets/selection-engine.js';
-const ids=Array.from({length:45},(_,i)=>`sample-${String(i+1).padStart(2,'0')}`);
+const ids=Array.from({length:55},(_,i)=>`sample-${String(i+1).padStart(2,'0')}`);
 assert.equal(readFileSync('./invite-sample-assets/selection-engine.js','utf8'),readFileSync('./selection-engine.js','utf8'));
 for(let seed=0;seed<120;seed++){
   const s=createSelection(ids,{lateSize:3,recheckMode:'baseline',seed});
