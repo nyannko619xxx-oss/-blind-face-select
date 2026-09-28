@@ -467,7 +467,6 @@ Human QA evidence from Owner iPad Safari: STARTO official-origin images displaye
 
 Public main remains `00b39fd5f7794fba44333cff1d183a6ecfa90931`. Human Owner iPad play through actual STARTO TOP9 is pending. Phase 2 NOT PASS; Retrospective Trigger UNADOPTED; image rights UNVERIFIED.
 
-
 ### Touch Reveal regression repair｜2026-09-29
 
 HUMAN PLAY: Owner iPad Safari completed STARTO 105 and Junior 158 with real official-origin images, approximately 15 minutes per set. ALL 263 full human play remains unverified. This is usability evidence, not Phase 2 selection-quality PASS or image-rights approval.
@@ -475,3 +474,9 @@ HUMAN PLAY: Owner iPad Safari completed STARTO 105 and Junior 158 with real offi
 REGRESSION: The isolated Owner Result Board automatically revealed 9→1 on a new result and immediately showed all cards for a stored result. Earlier touch-to-unveil interaction was absent. The Test-only board now begins with nine masked rank positions. Player taps rank 9, then 8, …, then 1; only the next rank is enabled. Each tap persists progress before enabling the next rank. On interruption, masked/revealed state resumes. Completed results open immediately, with a small “もう一度Reveal” action. Prior completed records lacking revealCount remain immediately viewable and can replay interactively. Names/images are inserted in the DOM only on reveal; the underlying ranking remains unchanged.
 
 LOCAL VERIFIED: selection, Invite and Owner persistence regressions pass; Test browser deployment and Safari retest follow separately. Public main/Pages and Production Selection Engine unchanged. Phase 2 NOT PASS; Retrospective Trigger UNADOPTED; image rights UNVERIFIED.
+
+#### Isolated Test deployment and touch Reveal E2E
+
+[Actions run 36456249031](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36456249031) SUCCESS on `checkpoint/tap-reveal` commit `6c1b0a3`. Exact Test Worker assets, preserved Owner Secret/D1 binding and Invite regression passed. Clean-browser fictional recipient E2E reached TOP9 in 42 screens. Clean-browser synthetic Owner E2E completed STARTO 105 in 53 screens, verified initial nine masked cards with no identity captions, tap order 9→1, persistence after revealing two and reloading, finished Result reopening, replay, and compatibility with a prior completed record lacking reveal progress. Junior 158 and ALL 263 mode entry/resume passed; no candidate master upload occurred. The first CI attempt failed from a race in the browser assertion immediately after IndexedDB restoration; the test now waits for the restored next card before checking counts. Test Worker is deployed; real Owner iPad Safari tap/replay remains HUMAN UNVERIFIED.
+
+This is Result/Reveal UX verification only. Existing Selection Engine and frozen ranking semantics were not edited. Public main/Pages unchanged; Phase 2 NOT PASS; Retrospective Trigger UNADOPTED; image rights UNVERIFIED.
