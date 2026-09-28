@@ -12,7 +12,7 @@ export function localDb(){
   const db=new DatabaseSync(':memory:');db.exec(readFileSync(join(root,'invite-sample-schema.sql'),'utf8'));
   return {prepare(sql){return {bind(...args){const stmt=db.prepare(sql);return {async first(){return stmt.get(...args)||null},async run(){return stmt.run(...args)}}}}},close(){db.close()}};
 }
-export function localEnv(origin,db=localDb()){return {APP_ORIGIN:origin,INVITE_DB:db,ADMIN_SECRET:randomBytes(32).toString('hex')}}
+export function localEnv(origin,db=localDb()){return {APP_ORIGIN:origin,INVITE_DB:db,ADMIN_SECRET:randomBytes(32).toString('hex'),OWNER_BOOTSTRAP_CODE:randomBytes(32).toString('hex')}}
 export function startLocalSample({port=8788}={}){
   const origin=`http://127.0.0.1:${port}`,env=localEnv(origin);
   const server=createServer(async(req,res)=>{
