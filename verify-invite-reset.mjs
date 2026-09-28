@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync} from 'node:fs';
+import crypto from 'node:crypto';
+import {ownerMarker,jstDay,resetSql} from './invite-test-reset.mjs';
+const db=new DatabaseSync(':memory:');db.exec(readFileSync('./invite-sample-schema.sql','utf8'));
+const token=s=>crypto.createHash('sha256').update(s).digest('hex');
+const day=jstDay(Date.UTC(2026,8,28,15,0));assert.equal(day,'2026-09-29');
+for(const [id,marker] of [['owner',ownerMarker],['recipient',token('rec')]])db.prepare('INSERT INTO anonymous_sessions VALUES (?, ?, ?, 1, 9999999999999)').run(id,token(id),marker);
+for(const [id,issuer,issued] of [['a','owner',day],['b','owner','2026-09-28'],['c','recipient',day]])db.prepare('INSERT INTO single_use_invites VALUES (?, ?, ?, 1, 9999999999999)').run(token(id),issuer,issued);
+assert.equal(db.prepare(resetSql).run(ownerMarker,day).changes,1);
+assert.equal(db.prepare('SELECT count(*) AS n FROM single_use_invites').get().n,2);
+assert.equal(db.prepare('SELECT count(*) AS n FROM single_use_invites WHERE issuer_session_id = ?').get('recipient').n,1);
+assert.equal(db.prepare('SELECT count(*) AS n FROM single_use_invites WHERE issued_jst_day = ?').get('2026-09-28').n,1);
+assert.equal(db.prepare(resetSql).run(ownerMarker,day).changes,0);
+console.log('test-only Owner current JST day reset scope PASS');
