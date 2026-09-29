@@ -94,6 +94,7 @@ try{
   const guest=await recipient.newPage();await guest.goto(link);
   await guest.getByRole('button',{name:'招待を受け取る'}).click();
   await guest.getByRole('button',{name:/STARTO/}).waitFor({timeout:15000});
+  await guest.waitForFunction(()=>document.querySelectorAll('#modes .mode-card').length===3);
   assert.equal(await guest.getByRole('button',{name:/Junior/}).count(),1);
   assert.equal(await guest.getByRole('button',{name:/ALL/}).count(),1);
   await guest.getByRole('button',{name:/STARTO/}).click();
@@ -105,7 +106,27 @@ try{
   await guest.waitForFunction(()=>document.querySelector('.owner-selection')?.textContent?.includes('2回目'));
   await guest.reload();await guest.getByRole('button',{name:/STARTO/}).click();
   assert.match(await guest.locator('.owner-selection').innerText(),/2回目/);
+  for(let step=0;step<100;step++){
+    if(await guest.locator('.owner-result').isVisible())break;
+    const before=await guest.locator('.owner-selection p').first().innerText();
+    const max=Number(before.match(/から(\d+)人まで選択/)?.[1]||1);
+    await guest.waitForFunction(count=>document.querySelectorAll('.game-face:not([disabled])').length>=count,max);
+    const cards=guest.locator('.game-face:not([disabled])');
+    for(let i=0;i<max;i++)await cards.nth(i).click();
+    await guest.getByRole('button',{name:'次へ進む'}).click();
+    await guest.waitForFunction(text=>document.querySelector('.owner-result')?.hidden===false||document.querySelector('.owner-selection p')?.textContent!==text,before);
+  }
+  await guest.getByRole('heading',{name:'あなたのTOP9'}).waitFor({state:'visible'});
+  assert.equal(await guest.locator('.board-card').count(),9);
+  await guest.reload();await guest.getByRole('button',{name:/STARTO/}).click();
+  await guest.locator('.board-card').first().waitFor({state:'visible'});
+  assert.equal(await guest.locator('.board-card').count(),9);
+  for(let rank=9;rank>=1;rank--)await guest.locator(`.board-card[data-rank="${rank}"]`).click();
+  await guest.getByRole('button',{name:'もう一度Reveal'}).waitFor({state:'visible'});
+  await guest.getByRole('button',{name:'もう一度Reveal'}).click();
+  await guest.waitForFunction(()=>document.querySelectorAll('.board-card.is-revealed').length===0);
+  assert.equal(await guest.locator('.board-card.is-revealed').count(),0);
   await guest.getByRole('button',{name:'ホームへ'}).click();await guest.getByRole('button',{name:'友だちを招待する'}).click();
   assert.equal(await guest.getByRole('button',{name:'招待リンクを作る'}).isEnabled(),true);
-  console.log('cross-origin migration, saved TOP9, Junior resume, Test preservation, encrypted recipient real STARTO and re-invite PASS');
+  console.log('cross-origin migration, saved TOP9, Junior resume, Test preservation, encrypted recipient STARTO selection/resume/TOP9/replay and re-invite PASS');
 }finally{if(browser)await browser.close();db.close()}
