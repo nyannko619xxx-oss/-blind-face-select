@@ -26,7 +26,7 @@ try{
   const migrated=await fetch(prodOrigin+'/v1/owner/migrate',{method:'POST',headers:{Origin:testOrigin,Authorization:'Bearer '+token},cache:'no-store'});
   const contentType=migrated.headers.get('content-type')||'';
   const body=contentType.includes('json')?await migrated.json():null;
-  console.log('production_migration_status',migrated.status,'production_migration_error',String(body?.error||'non_json_or_missing_error'));
+  console.log('production_migration_status',migrated.status,'production_migration_error',String(body?.error||'non_json_or_missing_error'),'upstream_status',body?.upstreamStatus||'none');
   if(migrated.status===201)throw Error('non_owner_migration_accepted');
 }finally{
   await query(test,'DELETE FROM anonymous_sessions WHERE session_id = ?',[id]);
