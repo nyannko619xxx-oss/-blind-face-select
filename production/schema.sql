@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS single_use_invites (
   issued_jst_day TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL,
+  encrypted_master TEXT,
   UNIQUE (issuer_session_id, issued_jst_day),
   FOREIGN KEY (issuer_session_id) REFERENCES anonymous_sessions(session_id)
 );

@@ -24,12 +24,13 @@ try{
   assert.equal((await call('/v1/sample/owner/claim',{method:'POST',token:prodToken})).status,404);
   assert.equal((await call('/v1/sample/admin/bootstrap',{method:'POST',token:prodToken})).status,404);
   const renewed=await call('/v1/sample/renew',{method:'POST',token:prodToken});assert.equal(renewed.status,200);
-  const invite=await call('/v1/sample/invites',{method:'POST',token:prodToken});assert.equal(invite.status,201);
+  const invite=await call('/v1/sample/invites',{method:'POST',token:prodToken,body:{encryptedMaster:{version:'starto-junior-2026-09-28',iv:'AAAAAAAAAAAAAAAA',ciphertext:'encryptedData'}}});assert.equal(invite.status,201);
   assert.equal((await call('/v1/sample/invites',{method:'POST',token:prodToken})).status,409);
   const claimed=await call('/v1/sample/claim',{method:'POST',body:{inviteToken:invite.value.inviteToken}});
   assert.equal(claimed.status,201);
   assert.equal((await call('/v1/sample/claim',{method:'POST',body:{inviteToken:invite.value.inviteToken}})).status,410);
   assert.equal((await call('/v1/sample/session',{token:claimed.value.sessionToken})).value.owner,false);
+  assert.equal((await call('/v1/sample/master-bundle',{token:claimed.value.sessionToken})).value.encryptedMaster.ciphertext,'encryptedData');
   assert.equal((await call('/v1/sample/fixture',{token:claimed.value.sessionToken})).status,404);
   assert.equal((await call('/v1/sample/renew',{method:'POST',token:claimed.value.sessionToken})).status,403);
   assert.equal((await call('/v1/sample/invites',{method:'POST',token:claimed.value.sessionToken})).status,201);

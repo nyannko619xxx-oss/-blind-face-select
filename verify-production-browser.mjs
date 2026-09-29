@@ -28,8 +28,9 @@ let browser;
 try{
   browser=await chromium.launch({headless:true});
   const context=await browser.newContext();
-  await context.route('**/*',async route=>{
+  const routeRequest=async route=>{
     const req=route.request(),url=new URL(req.url()),isTest=url.origin===TEST,isProd=url.origin===PROD;
+    if(url.hostname==='example.com'&&url.pathname.startsWith('/image/'))return route.fulfill({status:200,contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==','base64')});
     if(!isTest&&!isProd)return route.abort();
     if(url.pathname.startsWith('/v1/')){
       if(isTest){
@@ -42,7 +43,8 @@ try{
     const root=isTest?'invite-sample-assets':'production/assets',name=url.pathname==='/'?'index.html':url.pathname.slice(1);
     if(!/^[\w.-]+$/.test(name))return route.abort();
     try{return route.fulfill({status:200,contentType:mime(name),body:readFileSync(root+'/'+name)})}catch{return route.fulfill({status:404,body:'not_found'})}
-  });
+  };
+  await context.route('**/*',routeRequest);
   const setup=await context.newPage();
   await setup.goto(TEST+'/migration.html');
   await setup.evaluate(async({master,saved,jrSaved,oldToken})=>{
@@ -82,5 +84,28 @@ try{
     return await new Promise(resolve=>{const tx=db.transaction('private','readonly');tx.objectStore('private').get('owner-progress:'+hash).onsuccess=e=>resolve(e.target.result)});
   },oldToken);
   assert.equal(original.revealCount,9);
-  console.log('cross-origin private migration, saved TOP9 replay, Junior resume and Test preservation PASS');
+  await page.getByRole('button',{name:'ホームへ'}).click();
+  await page.getByRole('button',{name:'友だちを招待する'}).click();
+  await page.getByRole('button',{name:'招待リンクを作る'}).click();
+  await page.waitForFunction(()=>document.querySelector('#inviteLink')?.value?.includes('#invite='),null,{timeout:15000}).catch(async()=>{throw Error('invite_link_missing_'+await page.locator('#status').innerText())});
+  const link=await page.locator('#inviteLink').inputValue();
+  assert.match(link,/#invite=[a-f0-9]{64}&key=[A-Za-z0-9_-]{43}/);
+  const recipient=await browser.newContext();await recipient.route('**/*',routeRequest);
+  const guest=await recipient.newPage();await guest.goto(link);
+  await guest.getByRole('button',{name:'招待を受け取る'}).click();
+  await guest.getByRole('button',{name:/STARTO/}).waitFor({timeout:15000});
+  assert.equal(await guest.getByRole('button',{name:/Junior/}).count(),1);
+  assert.equal(await guest.getByRole('button',{name:/ALL/}).count(),1);
+  await guest.getByRole('button',{name:/STARTO/}).click();
+  await guest.locator('.owner-intro button').waitFor({state:'visible',timeout:15000}).catch(async()=>{throw Error('recipient_game_missing_'+await guest.locator('#status').innerText())});
+  await guest.locator('.owner-intro button').click();
+  await guest.locator('.game-face:not([disabled])').first().waitFor({timeout:15000});
+  await guest.locator('.game-face:not([disabled])').first().click();
+  await guest.getByRole('button',{name:'次へ進む'}).click();
+  await guest.waitForFunction(()=>document.querySelector('.owner-selection')?.textContent?.includes('2回目'));
+  await guest.reload();await guest.getByRole('button',{name:/STARTO/}).click();
+  assert.match(await guest.locator('.owner-selection').innerText(),/2回目/);
+  await guest.getByRole('button',{name:'ホームへ'}).click();await guest.getByRole('button',{name:'友だちを招待する'}).click();
+  assert.equal(await guest.getByRole('button',{name:'招待リンクを作る'}).isEnabled(),true);
+  console.log('cross-origin migration, saved TOP9, Junior resume, Test preservation, encrypted recipient real STARTO and re-invite PASS');
 }finally{if(browser)await browser.close();db.close()}

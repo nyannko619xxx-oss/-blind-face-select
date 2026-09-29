@@ -23,7 +23,7 @@ for(let i=0;i<8;i++){
   if(r.ok&&html.includes('STARTO')===false&&html.includes('id="modes"')&&html.includes('id="beginMigration"')&&!html.includes('140候補')&&!html.includes('Ownerとして開始')&&js.ok&&(await js.text())===readFileSync('production/assets/app.js','utf8')){loaded=true;break}
 }
 if(!loaded)throw Error('production_assets_not_ready');
-for(const file of ['selection-engine.js','reveal-board.js','board.css','owner-master.js','real-game.js']){
+for(const file of ['selection-engine.js','reveal-board.js','board.css','owner-master.js','master-transfer.js','real-game.js']){
   const r=await fetch(origin+'/'+file,{cache:'no-store'});
   if(!r.ok||(await r.text())!==readFileSync('production/assets/'+file,'utf8'))throw Error('asset_mismatch_'+file);
 }
@@ -38,10 +38,13 @@ try{
   expect(await request('/v1/sample/fixture',{bearer:token}),404,'no_production_fixture');
   expect(await request('/v1/sample/admin/bootstrap',{method:'POST',bearer:token}),404,'no_admin_bootstrap');
   expect(await request('/v1/sample/owner/claim',{method:'POST',bearer:token}),404,'no_owner_bootstrap');
-  const grant=expect(await request('/v1/sample/invites',{method:'POST',bearer:token}),201,'invite_issue');
+  const fixtureBundle={version:'starto-junior-2026-09-28',iv:'AAAAAAAAAAAAAAAA',ciphertext:'A'.repeat(660000)};
+  const grant=expect(await request('/v1/sample/invites',{method:'POST',bearer:token,body:{encryptedMaster:fixtureBundle}}),201,'invite_issue');
   invite=grant.inviteToken;
   const claimed=expect(await request('/v1/sample/claim',{method:'POST',body:{inviteToken:invite}}),201,'invite_claim');
   child=claimed.sessionToken;
+  const delivered=expect(await request('/v1/sample/master-bundle',{bearer:child}),200,'encrypted_bundle');
+  assert.deepEqual(delivered.encryptedMaster,fixtureBundle);
   expect(await request('/v1/sample/claim',{method:'POST',body:{inviteToken:invite}}),410,'invite_reuse');
   const recipient=expect(await request('/v1/sample/session',{bearer:child}),200,'recipient_session');
   assert.equal(recipient.owner,false);

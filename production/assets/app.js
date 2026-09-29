@@ -1,8 +1,10 @@
 import {mountOwnerRealGame} from './real-game.js?v=medal-reveal-01';
 import {ownerGameStatus,SETS,validateOwnerMaster,candidateSnapshot,privateRecord} from './owner-master.js?v=production-owner-01';
+import {sealMaster,openMaster} from './master-transfer.js';
 const $=id=>document.getElementById(id), KEY='bfs-production-session-v0.1';
 const TEST_ORIGIN='https://blind-face-select-invite-test-v01.nyannko619xxx.workers.dev';
-let sessionToken=localStorage.getItem(KEY), pendingInvite=null, currentSession=null, inviteUrl='', migrationWindow=null, migrationNonce=null;
+const PENDING_KEY='bfs-pending-invite-master-key-v01';
+let sessionToken=localStorage.getItem(KEY), pendingInvite=null, pendingInviteKey=null, currentSession=null, inviteUrl='', migrationWindow=null, migrationNonce=null;
 const status=value=>$('status').textContent=value;
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 async function api(path,{method='GET',body,authorized=true}={}){
@@ -14,9 +16,9 @@ function access(message){$('access').hidden=false;$('home').hidden=$('play').hid
 async function home(){
   $('access').hidden=$('retrySession').hidden=$('play').hidden=$('invitePanel').hidden=$('homeButton').hidden=true;
   $('home').hidden=false;$('modes').replaceChildren();
-  if(currentSession?.owner){
-    const master=await privateRecord('get','owner-master:2026-09-28');
-    $('migrateFromHome').hidden=!!master;
+  const master=await privateRecord('get','owner-master:2026-09-28');
+  if(master){
+    $('migrateFromHome').hidden=true;
     for(const [setId,set] of Object.entries(SETS)){
       const info=await ownerGameStatus(sessionToken,setId),button=document.createElement('button');
       button.type='button';button.className='mode-card';button.dataset.set=setId;
@@ -26,18 +28,26 @@ async function home(){
       button.append(title,count,state);button.onclick=()=>openGame(setId);$('modes').append(button);
     }
   }else{
-    $('migrateFromHome').hidden=true;
+    $('migrateFromHome').hidden=!currentSession?.owner;
     const note=document.createElement('p');note.textContent='実候補での選考は現在準備中です。招待機能はホームから利用できます。';$('modes').append(note);
   }
   status('');
 }
 async function openGame(setId){
-  if(!currentSession?.owner||!(setId in SETS))return;
+  if(!(setId in SETS)||!await privateRecord('get','owner-master:2026-09-28'))return;
   $('home').hidden=$('invitePanel').hidden=true;$('play').hidden=$('homeButton').hidden=false;
   try{await mountOwnerRealGame($('play'),sessionToken,{setId});status('')}catch{status('選考画面を開けませんでした。ホームに戻って再度お試しください。')}
 }
 async function showSession(){
-  try{currentSession=await api('/v1/sample/session');if(currentSession.owner&&currentSession.expiresAt-Date.now()<7*86400000)await api('/v1/sample/renew',{method:'POST'});$('quota').textContent='今日の招待：'+(currentSession.inviteAvailable?'利用できます':'使用済みです')+'。毎日0:00（日本時間）に更新されます。';$('makeInvite').disabled=!currentSession.inviteAvailable;await home()}
+  try{
+    currentSession=await api('/v1/sample/session');if(currentSession.owner&&currentSession.expiresAt-Date.now()<7*86400000)await api('/v1/sample/renew',{method:'POST'});
+    let provisionError=false;
+    if(!currentSession.owner&&localStorage.getItem(PENDING_KEY)){
+      try{const bundle=await api('/v1/sample/master-bundle'),master=await openMaster(bundle.encryptedMaster,localStorage.getItem(PENDING_KEY));await privateRecord('put','owner-master:2026-09-28',master);localStorage.removeItem(PENDING_KEY)}catch{provisionError=true}
+    }
+    $('quota').textContent='今日の招待：'+(currentSession.inviteAvailable?'利用できます':'使用済みです')+'。毎日0:00（日本時間）に更新されます。';$('makeInvite').disabled=!currentSession.inviteAvailable;await home();
+    if(provisionError){$('retrySession').hidden=false;status('候補データを復元できませんでした。再読み込みでお試しください。')}
+  }
   catch(error){if(error.code===401){sessionToken=null;currentSession=null;localStorage.removeItem(KEY);access('利用期限が終了しました。以前の端末から引き継ぐか、招待リンクを開いてください。')}else{$('retrySession').hidden=false;status('通信に失敗しました。再読み込みで続行してください。')}}
 }
 function validProgress(record,setId,master){
@@ -87,8 +97,11 @@ $('beginMigration').onclick=()=>{
 $('migrateFromHome').onclick=()=>$('beginMigration').click();
 $('claimInvite').onclick=async()=>{
   $('claimInvite').disabled=true;
-  try{const claimed=await api('/v1/sample/claim',{method:'POST',body:{inviteToken:pendingInvite},authorized:false});pendingInvite=null;sessionToken=claimed.sessionToken;localStorage.setItem(KEY,sessionToken);await showSession()}
-  catch(error){pendingInvite=null;access(error.code===410?'この招待は使用済み、または期限切れです。':'招待を受け取れませんでした。')}
+  try{
+    if(pendingInviteKey){if(!/^[A-Za-z0-9_-]{43}$/.test(pendingInviteKey))throw Error('invalid_key');localStorage.setItem(PENDING_KEY,pendingInviteKey)}
+    const claimed=await api('/v1/sample/claim',{method:'POST',body:{inviteToken:pendingInvite},authorized:false});pendingInvite=null;pendingInviteKey=null;sessionToken=claimed.sessionToken;localStorage.setItem(KEY,sessionToken);await showSession()
+  }
+  catch(error){if(error.code===410||error.code===400){pendingInvite=null;localStorage.removeItem(PENDING_KEY)}access(error.code===410?'この招待は使用済み、または期限切れです。':'招待を受け取れませんでした。')}
   finally{$('claimInvite').disabled=false}
 };
 $('retrySession').onclick=()=>showSession();
@@ -96,10 +109,15 @@ $('homeButton').onclick=()=>home();
 $('inviteFromHome').onclick=()=>{$('home').hidden=$('play').hidden=true;$('invitePanel').hidden=$('homeButton').hidden=false};
 $('makeInvite').onclick=async()=>{
   $('makeInvite').disabled=true;
-  try{const grant=await api('/v1/sample/invites',{method:'POST'}),url=new URL('index.html',location.href);url.hash='invite='+grant.inviteToken;inviteUrl=url.href;$('inviteLink').value=inviteUrl;$('shareArea').hidden=false;$('quota').textContent='今日の招待は使用済みです。';status('招待リンクを発行しました。')}
+  try{
+    const master=await privateRecord('get','owner-master:2026-09-28'),sealed=master?await sealMaster(master):null;
+    const grant=await api('/v1/sample/invites',{method:'POST',body:sealed?{encryptedMaster:sealed.bundle}:undefined}),url=new URL('index.html',location.href);
+    const fragment=new URLSearchParams({invite:grant.inviteToken});if(sealed)fragment.set('key',sealed.key);url.hash=fragment.toString();inviteUrl=url.href;
+    $('inviteLink').value=inviteUrl;$('shareArea').hidden=false;$('quota').textContent='今日の招待は使用済みです。';status('招待リンクを発行しました。')
+  }
   catch(error){status(error.code===409?'今日の招待は使用済みです。':'招待を発行できませんでした。');if(error.code!==409)$('makeInvite').disabled=false}
 };
 $('share').onclick=async()=>{if(!inviteUrl)return;if(navigator.share){try{await navigator.share({title:'Blind Face Select 招待',url:inviteUrl})}catch(error){if(error.name!=='AbortError')status('共有できませんでした。リンクをコピーしてください。')}}else $('copy').click()};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(inviteUrl);status('招待URLをコピーしました。')}catch{$('inviteLink').select();status('表示されたURLを選択してコピーしてください。')}};
-const fragment=location.hash;history.replaceState(null,'',location.pathname+location.search);
-if(fragment.startsWith('#invite=')){pendingInvite=fragment.slice(8);access('招待リンクを開きました。')}else if(sessionToken)showSession();else access('以前の結果を引き継ぐか、招待リンクを開いてください。');
+const fragment=new URLSearchParams(location.hash.slice(1));history.replaceState(null,'',location.pathname+location.search);
+if(/^[a-f0-9]{64}$/.test(fragment.get('invite')||'')){pendingInvite=fragment.get('invite');pendingInviteKey=fragment.get('key');access('招待リンクを開きました。')}else if(sessionToken)showSession();else access('以前の結果を引き継ぐか、招待リンクを開いてください。');

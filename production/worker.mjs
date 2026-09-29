@@ -56,6 +56,10 @@ export async function handleInviteRequest(request,env,{now=Date.now()}={}){
       const ownerMarker=await hash('blind-face-select:owner-bootstrap:v0.1');
       return response({active:true,owner:session.claimed_invite_hash===ownerMarker,expiresAt:session.expires_at,jstDay:day,inviteAvailable:!used},200,h);
     }
+    if(request.method==='GET'&&url.pathname==='/v1/sample/master-bundle'){
+      const bundle=await env.INVITE_DB.prepare('SELECT encrypted_master FROM single_use_invites WHERE token_hash = ?').bind(session.claimed_invite_hash).first();
+      return bundle?.encrypted_master?response({encryptedMaster:JSON.parse(bundle.encrypted_master)},200,h):response({error:'master_unavailable'},404,h);
+    }
     if(request.method==='POST'&&url.pathname==='/v1/sample/renew'){
       const ownerMarker=await hash('blind-face-select:owner-bootstrap:v0.1');
       if(session.claimed_invite_hash!==ownerMarker)return response({error:'owner_required'},403,h);
@@ -65,7 +69,14 @@ export async function handleInviteRequest(request,env,{now=Date.now()}={}){
     }
     if(request.method==='POST'&&url.pathname==='/v1/sample/invites'){
       const token=random(),day=jstDay(now),expiry=now+INVITE_MS;
-      try{await env.INVITE_DB.prepare('INSERT INTO single_use_invites (token_hash, issuer_session_id, issued_jst_day, created_at, expires_at) VALUES (?, ?, ?, ?, ?)').bind(await hash(token),session.session_id,day,now,expiry).run()}
+      let bundle=null;
+      try{bundle=(await request.json()).encryptedMaster??null}catch{}
+      if(bundle!==null&&(!bundle||bundle.version!=='starto-junior-2026-09-28'||!(/^[A-Za-z0-9_-]{16}$/).test(bundle.iv||'')||!(/^[A-Za-z0-9_-]{1,1800000}$/).test(bundle.ciphertext||'')))return response({error:'invalid_master_bundle'},400,h);
+      try{
+        // Keep at most thirty days of expired bundles for a recipient's interrupted save.
+        await env.INVITE_DB.prepare('DELETE FROM single_use_invites WHERE expires_at < ?').bind(now-SESSION_MS).run();
+        await env.INVITE_DB.prepare('INSERT INTO single_use_invites (token_hash, issuer_session_id, issued_jst_day, created_at, expires_at, encrypted_master) VALUES (?, ?, ?, ?, ?, ?)').bind(await hash(token),session.session_id,day,now,expiry,bundle?JSON.stringify(bundle):null).run()
+      }
       catch(error){if(/UNIQUE|constraint/i.test(String(error)))return response({error:'daily_invite_used',jstDay:day},409,h);throw error}
       return response({inviteToken:token,expiresAt:expiry,jstDay:day},201,h);
     }
