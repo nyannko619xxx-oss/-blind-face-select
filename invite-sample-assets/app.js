@@ -1,5 +1,5 @@
 import {mountFixtureGame} from './game.js?v=sample-v02-1';
-import {mountOwnerRealGame} from './real-game.js?v=reveal-finish-01';
+import {mountOwnerRealGame} from './real-game.js?v=medal-reveal-01';
 import {ownerGameStatus,SETS} from './owner-master.js?v=playable-01';
 const $=id=>document.getElementById(id),KEY='bfs-invite-sample-session-v0.1',OWNER_KEY='bfs-invite-sample-owner-code-v0.1';
 const endpoint=new URL(location.href).origin;
