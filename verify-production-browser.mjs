@@ -69,6 +69,7 @@ try{
   await page.getByRole('heading',{name:'あなたのTOP9'}).waitFor();
   assert.equal(await page.locator('.board-card.is-revealed').count(),9);
   await page.getByRole('button',{name:'もう一度Reveal'}).click();
+  await page.waitForFunction(()=>document.querySelectorAll('.board-card').length===9&&document.querySelectorAll('.board-card.is-revealed').length===0);
   assert.equal(await page.locator('.board-card.is-revealed').count(),0);
   await page.reload();await page.getByRole('button',{name:/STARTO/}).click();
   assert.equal(await page.locator('.board-card.is-revealed').count(),0);
