@@ -83,6 +83,6 @@ try{
     const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(oldToken))),b=>b.toString(16).padStart(2,'0')).join('');
     return await new Promise(resolve=>{const tx=db.transaction('private','readonly');tx.objectStore('private').get('owner-progress:'+hash).onsuccess=e=>resolve(e.target.result)});
   },oldToken);
-  assert.equal(unchanged.revealCount,9);
+  assert.equal(original.revealCount,9);
   console.log('cross-origin private migration, saved TOP9 replay, Junior resume and Test preservation PASS');
 }finally{if(browser)await browser.close();globalThis.fetch=oldFetch;db.close()}
