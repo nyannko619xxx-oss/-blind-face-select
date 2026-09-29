@@ -1,7 +1,7 @@
 // Owner-only technical test. No catalog or choices are sent to the Worker.
 import {createSelection,nextQuestion,submitChoice,selectionAudit} from './selection-engine.js';
 import {privateRecord,readOwnerFile,candidateSnapshot,SETS} from './owner-master.js';
-import {createRevealBoard} from './reveal-board.js?v=reveal-finish-01';
+import {createRevealBoard} from './reveal-board.js?v=medal-reveal-01';
 const phases={preliminary:'最初の選考',main:'次の選考',late:'候補を絞る',recovery:'候補を補う',boundary:'最後の確認',rank:'順位を決める'};
 const node=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el};
 const digest=async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join('');
