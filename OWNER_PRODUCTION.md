@@ -2,9 +2,10 @@
 
 ## Environment
 
-- Formal entrance: https://nyannko619xxx-oss.github.io/-blind-face-select/ redirects to the separate Production Worker origin https://blind-face-select-prod-v01.nyannko619xxx.workers.dev/ . The Worker origin is where Safari stores its private data.
+- Formal entrance: https://nyannko619xxx-oss.github.io/-blind-face-select/ redirects to the separate Production Worker origin https://blind-face-select-prod-v01.nyannko619xxx.workers.dev/ . The Worker origin is where Safari stores its private data. [Pages deployment](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36556045124) PASS; a clean browser followed the formal URL to Production and showed the migration/Invite access screen with no v0.3 links.
 - Separate Production Worker and D1 are named blind-face-select-prod-v01. The Test Worker/D1 remain blind-face-select-invite-test-v01. No R2, image binary, candidate mapping, name, image URL, player choice or history is uploaded to either Worker/D1.
 - The former main root v0.3 menu is removed from normal navigation. Legacy app.html, phase1.html and phase2.html remain addressable for old links/developer use but are not presented at the formal entrance.
+- Any older Pages-origin app.html session remains in Pages-origin storage and is still reachable through its direct URL. This migration covers the later Owner Test-origin records, not those legacy Pages records.
 - Production serves Owner real modes STARTO 105, Junior 158 and ALL 263 from the Owner browser's frozen private Master. Non-Owner invite recipients see an explicit real-candidate preparation message; no fictional game is offered on the Production Home.
 - The same Selection Engine source, Reveal board module and CSS as the Human QA Test build were copied byte-for-byte. No Retrospective Trigger or new ranking rule is active.
 

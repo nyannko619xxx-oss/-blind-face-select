@@ -1,6 +1,6 @@
 # Owner Real Play Production checkpoint — 2026-09-29
 
-Separate Worker/D1 DEPLOYED; automated production surface, private synthetic cross-origin migration, saved STARTO TOP9 replay, Junior resume, Test data retention and Invite Core PASS. Human Owner iPad migration and official-image play on the formal origin PENDING. Formal Pages root changed from the old v0.3 menu to a Production Worker launcher; Pages propagation must be checked independently. See [Owner Production](OWNER_PRODUCTION.md) and [deploy run](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36555878224). No real Master or image binary was uploaded. Phase 2 NOT PASS, Retrospective Trigger UNADOPTED, image rights UNVERIFIED.
+Separate Worker/D1 DEPLOYED; automated production surface, private synthetic cross-origin migration, saved STARTO TOP9 replay, Junior resume, Test data retention and Invite Core PASS. Human Owner iPad migration and official-image play on the formal origin PENDING. Formal Pages root changed from the old v0.3 menu to a Production Worker launcher; [Pages deployment](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36556045124) PASS and a clean browser followed the redirect to the Production access screen with no old test menu. See [Owner Production](OWNER_PRODUCTION.md) and [deploy run](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36555878224). No real Master or image binary was uploaded. Phase 2 NOT PASS, Retrospective Trigger UNADOPTED, image rights UNVERIFIED.
 
 ---
 
