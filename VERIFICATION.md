@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 24024)
+Total output lines: 503
+
 # Owner Real Play Production checkpoint — 2026-09-29
 
 Separate Worker/D1 DEPLOYED; automated production surface, private synthetic cross-origin migration, saved STARTO TOP9 replay, Junior resume, Test data retention and Invite Core PASS. Human Owner iPad migration and official-image play on the formal origin PENDING. Formal Pages root changed from the old v0.3 menu to a Production Worker launcher; [Pages deployment](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36556045124) PASS and a clean browser followed the redirect to the Production access screen with no old test menu. See [Owner Production](OWNER_PRODUCTION.md) and [deploy run](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36555878224). No real Master or image binary was uploaded. Phase 2 NOT PASS, Retrospective Trigger UNADOPTED, image rights UNVERIFIED.
@@ -226,41 +229,7 @@ A fifth condition was added after the table above to separate protection from th
 | 140 | 70.732 | 72 | 6.146 | 0 | 1.834 | 11 | 2.612 |
 | 263 | 114.148 | 116 | 5.362 | 0 | 1.542 | 11 | 3.568 |
 
-Against this matched Late+Pairwise control, C's protected runner-ups increase recovery by **2.338 people at 140** for **19.806 additional screens**, and **2.936 at 263** for **32.722 additional screens**. A versus C changes both protection and the terminal ranking/boundary path, so its difference alone was not a causal estimate of protection. A's original two boundary rescue matches account for A's higher recovery than E (0.174/0.350 people), at about 1.856/1.766 extra screens.
-
-The full 1–9 rank-by-stage counts for E are in `finalist-results.jsonl`. This control strengthens the stage-loss diagnosis but does not make C a deployment choice: the simulated near-tie signal is idealized, extra tagging adds interaction effort, and human preference stability is unverified. The app and production engine remain unchanged; Phase 2 stays **NOT PASS**.
-
-## B/D finalist boundary follow-up — 2026-09-27
-
-**Phase 2 remains NOT PASS; the public app and production selection engine were not changed.** The stored `finalist-results.jsonl` provided the existing target-24 aggregate reference, but lacked per-seed candidate/stage records. `verify-finalist-boundary.mjs` therefore reruns only B/D with the same 500 seeds and simulated player; target-24 rows reproduce the stored B/D mean screen and recovery figures exactly. `finalist-boundary-results.jsonl` stores all summaries and per-rank stage counts. No A/C/E rerun was needed.
-
-A threshold is checked after each complete 4→3 screening pass. Consequently, requested thresholds may result in the same actual pool size (e.g. 140: target 21/24 both yield 21; 263: target 24/28/30 yield 24). Extra protection tags are the simulated player's optional close-call on an omitted fourth face, capped at six; they enlarge D's ranking pool. The simulation uses a deterministic stable preference order. Scores control the simulated player's choices/tags and evaluation, never algorithmic ranking. Ranking compares each challenger first against the current ninth face, then binary-inserts on a player win, without all-pairs comparisons.
-
-### Where B/D misses occur at target 24
-
-| Pool | Policy | Preliminary | Main | Extra screening | In Finalist Pool but missed in Ranking | Total misses |
-|---|---|---:|---:|---:|---:|---:|
-| 140 | B | 0.046 | 0.196 | 0.062 | 0 | 0.304 |
-| 140 | D | 0.046 | 0.196 | 0 | 0 | 0.242 |
-| 263 | B | 0.010 | 0.060 | 0.084 | 0 | 0.154 |
-| 263 | D | 0.010 | 0.060 | 0.072 | 0 | 0.142 |
-
-Values are mean people per run; 500 runs per row. Ranking loss zero is expected for a stable transitive simulated preference with exact pairwise insertion; it must not be extrapolated to fluctuating human choices. At 140, B and D miss the same candidate in 121 of 4,500 true-TOP9 opportunities; D restores 31 B misses and creates zero new misses. At 263 the corresponding counts are 71 common misses and six restored, zero new. The “same candidate” means the same synthetic ID in the paired seed, not a real person. No single synthetic ID repeatedly dominates: the highest miss frequency is three of 500 seeds. Misses are concentrated near the boundary: at 140, B loses true ranks 8 and 9 in 47 and 48 of 500 runs (D: 36 and 39); ranks 1–3 are never missed. At 263, B loses ranks 8/9 in 20/25 (D: 16/24). The full rank 1–9 stage matrix is in the JSONL.
-
-### Pool position and screen tradeoff
-
-| Pool | Policy | Actual screened pool → ranking pool | Mean screens | P95 | Mean true TOP9 | Exact / 500 | Mean extra 4→3 screens | Mean pairwise/boundary screens | Mean tag taps |
-|---|---|---|---:|---:|---:|---:|---:|---:|---:|
-| 140 | B compact | 16 → 16 | 94.136 | 101 | 8.492 | 289 | 13 | 39.136 | 0 |
-| 140 | D compact | 16 → 21.992 | 100.680 | 108 | 8.628 | 334 | 13 | 45.680 | 5.992 |
-| 140 | B reference | 21 → 21 | 102.324 | 113 | 8.696 | 366 | 7 | 53.324 | 0 |
-| 140 | D reference | 21 → 25.786 | 107.334 | 118 | 8.758 | 388 | 7 | 58.334 | 4.786 |
-| 140 | B no extra screen | 28 → 28 | 112.898 | 126 | 8.758 | 388 | 0 | 70.898 | 0 |
-| 263 | B compact | 18 → 18 | 159.478 | 168 | 8.688 | 367 | 39 | 40.478 | 0 |
-| 263 | D compact | 18 → 24 | 165.522 | 174 | 8.700 | 369 | 39 | 46.522 | 6 |
-| 263 | B reference | 24 → 24 | 168.182 | 179 | 8.846 | 432 | 33 | 55.182 | 0 |
-| 263 | D reference | 24 → 30 | 174.220 | 185 | 8.858 | 436 | 33 | 61.220 | 6 |
-| 263 | B larger | 31 → 31 | 176.760 | 190 | 8.888 | 449 | 25 | 71.760 | 0 |
+Against this matched Late+Pairwise control, C's protected runner-ups increase recovery by **2.338 people at 140** for **19.806 additional screens**, and **2.936 at 263** for **32.722 additional screens**. A versus C changes both protection and the terminal ranking/boundar…1024 tokens truncated… 31 | 176.760 | 190 | 8.888 | 449 | 25 | 71.760 | 0 |
 | 263 | B largest tested | 41 → 41 | 185.386 | 201 | 8.914 | 461 | 14 | 91.386 | 0 |
 
 The 140 “no extra screen” option preserves all 28 Main survivors and uses only player-driven pairwise boundary ranking. Its 8.758 mean is the ceiling imposed by Preliminary/Main under this stable model; beyond that point a larger Finalist Pool cannot restore earlier omissions. At 263, the largest tested screened pool was 41 because the Main pool was 54 and a complete 4→3 pass yielded 41; the threshold itself does not directly set an exact size.
@@ -498,3 +467,6 @@ HUMAN QA: Owner iPad Safari video confirmed touch-to-unveil order, progress and 
 HUMAN QA on the preceding build found the closing tempo acceptable but requested presentation scale and medal hierarchy. The isolated Result UI preserves fixed visual order `9/8/7 | 3/1/2 | 6/5/4` and tap order 9→1. Ranks 9–4 remain normal. During each closing reveal, rank 3 temporarily scales to 1.3 with bronze, rank 2 to 1.6 with silver, and rank 1 to 2.0 with gold. Each scale uses `transform` above the unchanged Grid, then returns to normal before the next tap; after rank 1 all nine cards have equal Grid dimensions. Medal frames remain on ranks 1–3. Saved progress, replay, ranking and private catalog handling are unchanged. Automated E2E checks visual order, temporary computed scales, normal early cards, equal finished cell dimensions and frame colors as well as existing persistence/legacy result compatibility. Human iPad Safari scale/crop/pacing judgment remains PENDING until deployment and retest.
 
 [Actions run 36503765149](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36503765149) SUCCESS for isolated `checkpoint/tap-reveal` commit `3567ff0`. Exact Test Worker assets deployed; Invite/fixture and Owner browser regressions passed. Synthetic Owner STARTO 105 completed in 53 screens, verified fixed visual order, 9→1, normal 9–4 scale, temporary 3≈1.3/2≈1.6/1≈2.0, completed equal-cell Grid, gold/silver/bronze and normal frames, saved partial progress, reload, replay and legacy completed result. Junior/ALL entry and resume passed; no candidate master upload. This is AUTOMATED VERIFIED only; physical iPad Safari presentation remains HUMAN QA PENDING. Public main remains `00b39fd5f7794fba44333cff1d183a6ecfa90931`; Phase 2 NOT PASS, Retrospective Trigger UNADOPTED, image rights UNVERIFIED.
+### 2026-09-29 Owner Production migration repair
+
+Human iPad migration FAIL at 21:49 JST. Test Owner session and private payload read completed; Production Owner creation failed before browser transfer. Live isolated diagnostics found a Worker-to-Worker `workers.dev` subrequest returned HTTP 404 despite a valid external Test session response. Production now uses a Service Binding to the Test Worker for old Owner verification. [Live repair run](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36571577640): synthetic browser transfer, saved TOP9/replay, Junior resume, Test retention, non-Owner rejection, Production Owner count unchanged and Invite regression PASS. Genuine Owner iPad Safari retry PENDING; Production Human QA remains NOT PASS. Test data retained; Phase 2 NOT PASS, Retrospective Trigger UNADOPTED, image rights UNVERIFIED.
