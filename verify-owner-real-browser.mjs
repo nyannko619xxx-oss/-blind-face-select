@@ -30,6 +30,7 @@ try{
   }
   assert.equal(await page.locator('.board-card').count(),9);assert(seen.has(5)&&seen.has(4)&&seen.has(3)&&resumed);assert.equal(candidateUpload,0);
   assert.equal(await page.locator('.board-card.is-revealed').count(),0);
+  assert.deepEqual(await page.locator('.board-card').evaluateAll(cards=>cards.map(c=>Number(c.dataset.rank))),[9,8,7,3,1,2,6,5,4]);
   assert((await page.locator('.board-caption').allTextContents()).every(x=>!x));
   assert.equal(await page.locator('.board-card.is-next').getAttribute('data-rank'),'9');
   for(const rank of [9,8])await page.locator(`.board-card[data-rank="${rank}"]`).click();
@@ -41,16 +42,31 @@ try{
   assert.equal(await page.locator('.board-card.is-next').getAttribute('data-rank'),'7');
   for(const rank of [7,6,5,4,3,2,1]){
     const started=Date.now();await page.locator(`.board-card[data-rank="${rank}"]`).click();
+    if(rank<=3){
+      await page.locator(`.board-card.is-spotlight[data-rank="${rank}"]`).waitFor();
+      const minimum={3:1.27,2:1.55,1:1.9}[rank];
+      await page.waitForFunction(({rank,minimum})=>Number(getComputedStyle(document.querySelector(`.board-card[data-rank="${rank}"]`)).transform.match(/matrix\(([^,]+)/)?.[1])>=minimum,{rank,minimum});
+    }
     if(rank>1)await page.locator(`.board-card.is-next[data-rank="${rank-1}"]`).waitFor();
     else await page.locator('.board.is-final').waitFor();
-    if(rank===3)assert(Date.now()-started>=300,'third_place_beat_missing');
-    if(rank===2)assert(Date.now()-started>=450,'second_place_beat_missing');
-    if(rank===1)assert(Date.now()-started>=750,'first_place_beat_missing');
+    if(rank>=4)assert.equal(await page.locator(`.board-card[data-rank="${rank}"]`).evaluate(el=>getComputedStyle(el).transform),'none','early_rank_scaled');
+    if(rank===3)assert(Date.now()-started>=550,'third_place_beat_missing');
+    if(rank===2)assert(Date.now()-started>=650,'second_place_beat_missing');
+    if(rank===1)assert(Date.now()-started>=900,'first_place_beat_missing');
   }
   await page.locator('.board.is-final .board-card.is-revealed').first().waitFor();assert.equal(await page.locator('.board-card.is-revealed').count(),9);
-  await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.board-card[data-rank="1"]')).transform.match(/matrix\(([^,]+)/)?.[1])>1.06);
-  const emphasis=await page.locator('.board-card[data-rank="1"],.board-card[data-rank="2"]').evaluateAll(cards=>cards.map(c=>Number(getComputedStyle(c).transform.match(/matrix\(([^,]+)/)?.[1])));
-  assert(emphasis[0]>emphasis[1],'first_place_focus_missing');
+  await page.waitForFunction(()=>Array.from(document.querySelectorAll('.board-card')).every(c=>getComputedStyle(c).transform==='none'));
+  await page.waitForFunction(()=>{const cards=Array.from(document.querySelectorAll('.board-card')),widths=cards.map(c=>c.getBoundingClientRect().width),heights=cards.map(c=>c.getBoundingClientRect().height);return Math.max(...widths)-Math.min(...widths)<2&&Math.max(...heights)-Math.min(...heights)<2});
+  assert.equal(await page.locator('.board-card.is-spotlight').count(),0);
+  const finalBoard=await page.locator('.board-card').evaluateAll(cards=>cards.map(c=>({rank:Number(c.dataset.rank),color:getComputedStyle(c).borderTopColor,width:c.getBoundingClientRect().width,height:c.getBoundingClientRect().height})));
+  assert.deepEqual(finalBoard.map(c=>c.rank),[9,8,7,3,1,2,6,5,4]);
+  assert(Math.max(...finalBoard.map(c=>c.width))-Math.min(...finalBoard.map(c=>c.width))<2,'final_grid_width_mismatch');
+  assert(Math.max(...finalBoard.map(c=>c.height))-Math.min(...finalBoard.map(c=>c.height))<2,'final_grid_height_mismatch');
+  const byRank=new Map(finalBoard.map(c=>[c.rank,c]));
+  assert.equal(byRank.get(1).color,'rgb(233, 198, 132)');
+  assert.equal(byRank.get(2).color,'rgb(210, 217, 227)');
+  assert.equal(byRank.get(3).color,'rgb(197, 140, 99)');
+  for(let rank=4;rank<=9;rank++)assert.equal(byRank.get(rank).color,'rgb(72, 91, 120)');
   await page.reload();await page.locator('.mode-card[data-set="STARTO_SELECT"]').click();await page.locator('.board.is-final').waitFor();assert.equal(await page.locator('.board-card.is-revealed').count(),9);
   await page.getByRole('button',{name:'もう一度Reveal'}).click();await page.locator('.board-card.is-next[data-rank="9"]').waitFor();assert.equal(await page.locator('.board-card.is-revealed').count(),0);
   assert.equal(await page.locator('.board-card.is-next').getAttribute('data-rank'),'9');
