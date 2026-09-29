@@ -1,3 +1,9 @@
+# Owner Real Play Production checkpoint — 2026-09-29
+
+Separate Worker/D1 DEPLOYED; automated production surface, private synthetic cross-origin migration, saved STARTO TOP9 replay, Junior resume, Test data retention and Invite Core PASS. Human Owner iPad migration and official-image play on the formal origin PENDING. Formal Pages root changed from the old v0.3 menu to a Production Worker launcher; Pages propagation must be checked independently. See [Owner Production](OWNER_PRODUCTION.md) and [deploy run](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36555878224). No real Master or image binary was uploaded. Phase 2 NOT PASS, Retrospective Trigger UNADOPTED, image rights UNVERIFIED.
+
+---
+
 # Invite Test Reset and Real Candidate Gate — 2026-09-28
 
 **Task A IMPLEMENTED / local scope and live Test reset VERIFIED.** Dedicated [Test-only reset workflow](.github/workflows/reset-test-owner-quota.yml) has no Worker route or participant control. Initial [run](https://github.com/nyannko619xxx-oss/-blind-face-select/actions/runs/36437654514) inspected one claimed Owner Invite on the current JST day; explicit rerun (attempt 2) removed exactly one Owner daily Invite row. It never changed the claimed recipient's Session row, any other issuer, or Production daily logic. The workflow refuses an outstanding unclaimed Invite. Only an authenticated GitHub Actions rerun can execute it; secrets and session identifiers were not output. See [Real Candidate Gate](REAL_CANDIDATE_GATE.md) for exact scope and reuse instructions.
