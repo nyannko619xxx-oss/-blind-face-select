@@ -23,7 +23,7 @@ const domain=await api('/accounts/'+account+'/workers/subdomain');
 if(!/^[a-z0-9-]+$/.test(domain.subdomain||''))throw Error('workers_subdomain_missing');
 const origin=name=>'https://'+name+'.'+domain.subdomain+'.workers.dev';
 const cfg=(name,main,assets,db,vars)=>({name,account_id:account,main,compatibility_date:'2026-09-28',workers_dev:true,assets:{directory:assets,run_worker_first:['/v1/*']},d1_databases:[{binding:'INVITE_DB',database_name:name,database_id:db}],vars});
-writeFileSync('.production.wrangler.json',JSON.stringify(cfg(prod,'production/worker.mjs','./production/assets',prodDbs[0].uuid,{APP_ORIGIN:origin(prod),TEST_ORIGIN:origin(test)})));
+writeFileSync('.production.wrangler.json',JSON.stringify({...cfg(prod,'production/worker.mjs','./production/assets',prodDbs[0].uuid,{APP_ORIGIN:origin(prod),TEST_ORIGIN:origin(test)}),services:[{binding:'TEST_SESSION',service:test}]}));
 writeFileSync('.migration-test.wrangler.json',JSON.stringify(cfg(test,'invite-sample-worker.mjs','./invite-sample-assets',testDb[0].uuid,{APP_ORIGIN:origin(test)})));
 appendFileSync(process.env.GITHUB_ENV,'PROD_ORIGIN='+origin(prod)+'\nTEST_ORIGIN='+origin(test)+'\n');
 console.log('exact_separate_worker_and_d1_configs_prepared');

@@ -27,7 +27,10 @@ try{
   const contentType=migrated.headers.get('content-type')||'';
   const body=contentType.includes('json')?await migrated.json():null;
   console.log('production_migration_status',migrated.status,'production_migration_error',String(body?.error||'non_json_or_missing_error'),'upstream_status',body?.upstreamStatus||'none');
-  if(migrated.status===201)throw Error('non_owner_migration_accepted');
+  if(migrated.status!==403||body?.error!=='owner_required')throw Error('test_service_binding_or_owner_gate_failed');
 }finally{
   await query(test,'DELETE FROM anonymous_sessions WHERE session_id = ?',[id]);
 }
+const after=await query(prod,'SELECT COUNT(*) AS count FROM anonymous_sessions WHERE claimed_invite_hash = ?',[ownerMarker]);
+if(after[0].count!==prodRows[0].count)throw Error('diagnostic_changed_owner_count');
+console.log('test_service_binding_and_owner_gate_pass');

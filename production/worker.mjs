@@ -20,7 +20,8 @@ export async function handleInviteRequest(request,env,{now=Date.now()}={}){
     if(!migration||!env.TEST_ORIGIN)return response({error:'forbidden_origin'},403,h);
     const oldToken=bearer(request);if(!oldToken)return response({error:'unauthorized'},401,h);
     // The old Owner bearer is verified by the existing isolated Test Worker, never logged/stored.
-    const checked=await fetch(env.TEST_ORIGIN+'/v1/sample/session',{headers:{Authorization:'Bearer '+oldToken},cache:'no-store',referrerPolicy:'no-referrer'});
+    if(!env.TEST_SESSION)return response({error:'old_owner_verification_unavailable'},503,h);
+    const checked=await env.TEST_SESSION.fetch(new Request(env.TEST_ORIGIN+'/v1/sample/session',{headers:{Authorization:'Bearer '+oldToken},cache:'no-store',referrerPolicy:'no-referrer'}));
     if(!checked.ok)return response({error:checked.status===401?'old_owner_session_expired':'old_owner_verification_unavailable',upstreamStatus:checked.status},checked.status===401?401:502,h);
     const oldSession=await checked.json();
     if(oldSession.owner!==true||oldSession.active!==true)return response({error:'owner_required'},403,h);

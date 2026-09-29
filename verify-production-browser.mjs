@@ -9,9 +9,7 @@ const oldToken='a'.repeat(64);
 const db=new DatabaseSync(':memory:');db.exec(readFileSync('production/schema.sql','utf8'));
 const d1={prepare(sql){return {bind(...params){const s=db.prepare(sql);return {async first(){return s.get(...params)||null},async run(){return s.run(...params)}}}}}};
 const worker=(await import('./production/worker.mjs')).default;
-const oldFetch=globalThis.fetch;
-globalThis.fetch=async(url,options)=>new Response(JSON.stringify({owner:options?.headers?.Authorization==='Bearer '+oldToken,active:true}),{status:options?.headers?.Authorization==='Bearer '+oldToken?200:401,headers:{'Content-Type':'application/json'}});
-const env={APP_ORIGIN:PROD,TEST_ORIGIN:TEST,INVITE_DB:d1};
+const env={APP_ORIGIN:PROD,TEST_ORIGIN:TEST,INVITE_DB:d1,TEST_SESSION:{fetch:async request=>new Response(JSON.stringify({owner:request.headers.get('Authorization')==='Bearer '+oldToken,active:true}),{status:request.headers.get('Authorization')==='Bearer '+oldToken?200:401,headers:{'Content-Type':'application/json'}})}};
 const ids=Array.from({length:263},(_,i)=>'S'+String(i+1).padStart(3,'0'));
 const cards=ids.map((id,i)=>({candidate_id:id,identity_id:'I'+id,display_name:'Person '+id,group:'Group',official_profile_url:'https://example.com/profile/'+id,image_source_url:'https://example.com/image/'+id+'.jpg'}));
 const master={schema_version:3,master_version:'starto-junior-2026-09-28',candidate_master:cards,candidate_sets:{
@@ -85,4 +83,4 @@ try{
   },oldToken);
   assert.equal(original.revealCount,9);
   console.log('cross-origin private migration, saved TOP9 replay, Junior resume and Test preservation PASS');
-}finally{if(browser)await browser.close();globalThis.fetch=oldFetch;db.close()}
+}finally{if(browser)await browser.close();db.close()}

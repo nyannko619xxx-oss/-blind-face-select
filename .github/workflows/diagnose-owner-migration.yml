@@ -14,8 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: node production/prepare-deploy.mjs
-      - run: npm install --no-save --ignore-scripts wrangler@4.45.0
+      - run: node verify-production.mjs
+      - run: npm install --no-save --ignore-scripts wrangler@4.45.0 playwright@1.55.0
+      - run: npx playwright install chromium
+      - run: node verify-production-browser.mjs
       - run: npx wrangler deploy --config=.production.wrangler.json
       - run: node production/diagnose-migration.mjs
+      - run: node production/verify-live.mjs
       - if: always()
         run: rm -f .production.wrangler.json .migration-test.wrangler.json
