@@ -28,7 +28,7 @@ jobs:
         run: node production/prepare-deploy.mjs
       - name: Install pinned Wrangler and browser harness
         run: npm install --no-save --ignore-scripts wrangler@4.45.0 playwright@1.55.0
-      - name: Verify private migration, saved Reveal replay and resume in browser
+      - name: Verify private migration, Reveal replay and Junior resume in browser
         run: |
           npx playwright install chromium
           node verify-production-browser.mjs

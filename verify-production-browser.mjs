@@ -75,6 +75,7 @@ try{
   assert.equal(await page.locator('.board-card.is-revealed').count(),0);
   await page.getByRole('button',{name:'ホームへ'}).click();
   await page.getByRole('button',{name:/Junior/}).click();
+  await page.waitForFunction(()=>document.querySelector('.owner-selection')?.textContent?.includes('1回目'));
   assert.match(await page.locator('.owner-selection').innerText(),/1回目/);
   const unchanged=await context.newPage();await unchanged.goto(TEST+'/migration.html');
   const original=await unchanged.evaluate(async oldToken=>{
